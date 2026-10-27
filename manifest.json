@@ -8,14 +8,14 @@
   "theme_color": "#0a0a0a",
   "icons": [
     {
-      "src": "https://placehold.co/192x192/0a0a0a/ffffff?text=K",
+      "src": "https://sriduasaznesdcemdtmd.supabase.co/storage/v1/object/public/product-images/download%20(7).jpg",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/jpeg"
     },
     {
-      "src": "https://placehold.co/512x512/0a0a0a/ffffff?text=K",
+      "src": "https://sriduasaznesdcemdtmd.supabase.co/storage/v1/object/public/product-images/download%20(7).jpg",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/jpeg"
     }
   ]
 }
