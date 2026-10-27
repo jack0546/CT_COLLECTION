@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shop — Luxe Threads</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <div style="padding:24px 0 4px; font-size:13px; color:#737373;">
+      <a href="index.html">Home</a> / <span style="color:#0a0a0a;">Shop</span>
+    </div>
+    <h1 style="margin:0 0 24px;">Shop All</h1>
+
+    <div class="shop-layout">
+      <aside class="filters" id="filters">
+        <div class="filter-group">
+          <label>Search</label>
+          <input id="f-search" placeholder="Search…" />
+        </div>
+        <div class="filter-group">
+          <label>Category</label>
+          <select id="f-category"><option value="">All categories</option></select>
+        </div>
+        <div class="filter-group">
+          <label>Max price — <span id="price-label">₵ 2000</span></label>
+          <input id="f-price" type="range" min="0" max="2000" step="50" value="2000" />
+        </div>
+        <div class="filter-group">
+          <label>Colour</label>
+          <select id="f-colour"><option value="">Any colour</option></select>
+        </div>
+        <div class="filter-group">
+          <label>Size</label>
+          <select id="f-size"><option value="">Any size</option></select>
+        </div>
+      </aside>
+
+      <div>
+        <div class="shop-toolbar">
+          <p id="result-count" class="muted" style="margin:0;">Loading…</p>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-outline" id="toggle-filters" style="display:none;">Filters</button>
+            <select id="f-sort">
+              <option value="newest">Newest</option>
+              <option value="price-asc">Price: Low → High</option>
+              <option value="price-desc">Price: High → Low</option>
+              <option value="name">Name A–Z</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- This is the missing div for categories -->
+        <div class="category-grid" id="shop-categories" style="display:none; margin-bottom: 30px;"></div>
+
+        <div class="product-grid" id="shop-grid"></div>
+      </div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/footer.js"></script>
+  <script src="js/shop.js"></script>
+</body>
+</html>

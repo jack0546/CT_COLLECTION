@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reviews — Admin</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body>
+  <div class="admin-shell">
+    <main class="admin-main">
+      <div class="admin-topbar">
+        <h1>Product Reviews</h1>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="admin-table" id="reviews-table">
+            <thead>
+              <tr>
+                <th>Date</th> <!-- ADDED -->
+                <th>Product</th>
+                <th>Customer</th>
+                <th>Rating</th>
+                <th>Comment</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="7" class="muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/admin-auth.js"></script>
+  <script>
+    async function loadReviews() {
+      const { data, error } = await supabaseClient
+        .from('reviews')
+        .select('*, products(name)')
+        .order('created_at', { ascending: false });
+
+      const tbody = document.querySelector('#reviews-table tbody');
+      
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="7" class="muted">Error: ${error.message}</td></tr>`;
+        return;
+      }
+      if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="muted">No reviews yet.</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = data.map(r => `
+        <tr>
+          <td style="font-size: 12px; color: #64748b;">
+            ${new Date(r.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </td>
+          <td>${escapeHtml(r.products?.name || 'Deleted Product')}</td>
+          <td>${escapeHtml(r.customer_name)}</td>
+          <td style="color:#f59e0b;">${'★'.repeat(r.rating)}</td>
+          <td>${escapeHtml(r.comment)}</td>
+          <td>${r.approved ? '<span class="badge badge-delivered">Approved</span>' : '<span class="badge badge-pending">Pending</span>'}</td>
+          <td style="white-space: nowrap;">
+            ${!r.approved ? `<button class="btn btn-light btn-sm" data-approve="${r.id}">Approve</button>` : ''}
+            <button class="btn btn-red btn-sm" data-del="${r.id}">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+
+      tbody.querySelectorAll('[data-approve]').forEach(b => {
+        b.addEventListener('click', async () => {
+          await supabaseClient.from('reviews').update({ approved: true }).eq('id', b.dataset.approve);
+          loadReviews();
+        });
+      });
+
+      tbody.querySelectorAll('[data-del]').forEach(b => {
+        b.addEventListener('click', async () => {
+          if (!confirm('Delete this review?')) return;
+          await supabaseClient.from('reviews').delete().eq('id', b.dataset.del);
+          loadReviews();
+        });
+      });
+    }
+
+    (async () => { 
+      await requireAdmin(); 
+      await mountAdminShell('reviews'); 
+      await loadReviews(); 
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Track Order — KOFF BOUTIQUE</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .tracker-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 30px; max-width: 600px; margin: 0 auto; }
+    .timeline { display: flex; justify-content: space-between; margin-top: 30px; position: relative; }
+    .timeline::before { content: ''; position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: #e5e5e5; z-index: 1; }
+    .timeline-step { position: relative; z-index: 2; text-align: center; flex: 1; }
+    .timeline-circle { width: 32px; height: 32px; border-radius: 50%; background: #e5e5e5; color: #fff; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-weight: bold; }
+    .timeline-step.active .timeline-circle { background: #16a34a; }
+    .timeline-step.completed .timeline-circle { background: #0a0a0a; }
+    .timeline-label { font-size: 12px; color: #737373; font-weight: 500; }
+    .timeline-step.active .timeline-label { color: #16a34a; font-weight: bold; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container" style="padding: 40px 16px 80px;">
+    <h1 style="text-align: center; margin-bottom: 30px;">Track Your Order</h1>
+
+    <!-- Form to look up order -->
+    <div class="tracker-card" id="tracker-form-card">
+      <p class="muted" style="margin-bottom: 20px; text-align: center;">Enter your Order Reference and Phone Number to see your order status.</p>
+      <form id="tracker-form">
+        <div class="form-field">
+          <label>Order Reference (e.g., ORD-123456)</label>
+          <input id="t-ref" required />
+        </div>
+        <div class="form-field">
+          <label>Phone Number</label>
+          <input id="t-phone" required />
+        </div>
+        <button type="submit" class="btn btn-dark" style="width: 100%; margin-top: 10px;" id="t-btn">Find My Order</button>
+      </form>
+      <div id="t-error" class="hidden" style="color: #dc2626; text-align: center; margin-top: 15px; font-size: 14px;"></div>
+    </div>
+
+    <!-- Results -->
+    <div class="tracker-card hidden" id="tracker-result-card">
+      <h2 style="margin: 0 0 4px;">Order: <span id="r-ref" style="font-weight: normal; color: #525252;"></span></h2>
+      
+      <!-- ADDED: Payment Status -->
+      <p class="muted" style="margin-bottom: 20px;">
+        Total: <span id="r-total" style="font-weight: bold; color: #0a0a0a;"></span> <br>
+        Payment: <span id="r-payment" style="font-weight: bold;"></span>
+      </p>
+
+      <div class="timeline" id="r-timeline">
+        <div class="timeline-step" data-step="pending">
+          <div class="timeline-circle">1</div>
+          <div class="timeline-label">Pending</div>
+        </div>
+        <div class="timeline-step" data-step="confirmed">
+          <div class="timeline-circle">2</div>
+          <div class="timeline-label">Confirmed</div>
+        </div>
+        <div class="timeline-step" data-step="shipped">
+          <div class="timeline-circle">3</div>
+          <div class="timeline-label">Shipped</div>
+        </div>
+        <div class="timeline-step" data-step="delivered">
+          <div class="timeline-circle">✓</div>
+          <div class="timeline-label">Delivered</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 30px; border-top: 1px solid #e5e5e5; padding-top: 15px;">
+        <h4 style="margin: 0 0 10px;">Items</h4>
+        <div id="r-items"></div>
+      </div>
+      <button class="btn btn-light" style="width: 100%; margin-top: 20px;" onclick="location.reload()">Track another order</button>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/footer.js"></script>
+  <script>
+    const STATUS_MAP = { pending: 0, confirmed: 1, processing: 1, shipped: 2, delivered: 3, cancelled: -1 };
+
+    document.getElementById('tracker-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('t-btn');
+      const errEl = document.getElementById('t-error');
+      const ref = document.getElementById('t-ref').value.trim();
+      const phone = document.getElementById('t-phone').value.trim();
+
+      btn.disabled = true;
+      btn.textContent = 'Searching...';
+      errEl.classList.add('hidden');
+
+      // Look up order matching BOTH reference and phone
+      const { data, error } = await supabaseClient
+        .from('orders')
+        .select('*')
+        .eq('order_reference', ref)
+        .eq('customer_phone', phone)
+        .single();
+
+      btn.disabled = false;
+      btn.textContent = 'Find My Order';
+
+      if (error || !data) {
+        errEl.textContent = 'Order not found. Please check your reference and phone number.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      // Show results
+      document.getElementById('tracker-form-card').classList.add('hidden');
+      document.getElementById('tracker-result-card').classList.remove('hidden');
+      
+      document.getElementById('r-ref').textContent = data.order_reference;
+      document.getElementById('r-total').textContent = `₵ ${Number(data.total_amount).toFixed(2)}`;
+
+      // ADDED: Render Payment Status
+      const payEl = document.getElementById('r-payment');
+      if (data.payment_status === 'paid') {
+        payEl.textContent = 'Paid ✓';
+        payEl.style.color = '#166534'; // Green
+      } else {
+        payEl.textContent = 'Unpaid';
+        payEl.style.color = '#dc2626'; // Red
+      }
+
+      // Render items
+      const items = data.order_items || [];
+      document.getElementById('r-items').innerHTML = items.map(i => `
+        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;">
+          <span>${i.productName} (${i.colourName}/${i.size}) ×${i.quantity}</span>
+          <span>₵ ${Number(i.unitPrice * i.quantity).toFixed(2)}</span>
+        </div>
+      `).join('');
+
+      // Render timeline
+      const currentStatus = data.status;
+      const currentStep = STATUS_MAP[currentStatus];
+
+      if (currentStatus === 'cancelled') {
+        document.getElementById('r-timeline').innerHTML = `<div style="color:#dc2626; font-weight:bold; text-align:center; width:100%;">This order has been cancelled. Please contact us for details.</div>`;
+      } else {
+        document.querySelectorAll('.timeline-step').forEach(el => {
+          const stepIndex = STATUS_MAP[el.dataset.step];
+          el.classList.remove('active', 'completed');
+          if (stepIndex < currentStep) el.classList.add('completed');
+          if (stepIndex === currentStep) el.classList.add('active');
+        });
+      }
+    });
+  </script>
+</body>
+</html>

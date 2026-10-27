@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Customers — Admin</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body>
+  <div class="admin-shell">
+    <main class="admin-main">
+      <div class="admin-topbar"><h1>Customer Directory</h1></div>
+      <div class="orders-toolbar" style="margin-bottom:20px;">
+        <input type="text" id="cust-search" placeholder="Search by name or phone..." style="flex:1; padding:10px 14px; border:1px solid #d4d4d4; border-radius:6px;" />
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="admin-table" id="customers-table">
+            <thead><tr><th>Customer Name</th><th>Phone</th><th>Total Orders</th><th>Total Spent</th><th>Last Order</th></tr></thead>
+            <tbody><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/admin-auth.js"></script>
+  <script>
+    let allCustomers = [];
+    
+    function renderCustomers(list) {
+      const tbody = document.querySelector('#customers-table tbody');
+      if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="muted">No customers found.</td></tr>'; return; }
+      tbody.innerHTML = list.map(c => `
+        <tr>
+          <td><strong>${escapeHtml(c.name)}</strong></td>
+          <td>${c.phone}</td>
+          <td>${c.orders}</td>
+          <td style="color:#16a34a; font-weight:600;">₵ ${c.spent.toFixed(2)}</td>
+          <td>${new Date(c.lastOrder).toLocaleDateString()}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadCustomers() {
+      const { data } = await supabaseClient.from('orders').select('*').order('created_at', { ascending: false });
+      if (!data) return;
+      const map = {};
+      data.forEach(o => {
+        const key = o.customer_phone;
+        if (!map[key]) {
+          map[key] = { name: o.customer_name, phone: o.customer_phone, orders: 0, spent: 0, lastOrder: o.created_at };
+        }
+        map[key].orders++;
+        if (o.status !== 'cancelled') map[key].spent += Number(o.total_amount);
+        // Update last order date if this is more recent
+        if (new Date(o.created_at) > new Date(map[key].lastOrder)) map[key].lastOrder = o.created_at;
+      });
+      allCustomers = Object.values(map).sort((a, b) => b.spent - a.spent);
+      renderCustomers(allCustomers);
+    }
+
+    document.getElementById('cust-search').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase();
+      renderCustomers(allCustomers.filter(c => c.name.toLowerCase().includes(q) || c.phone.includes(q)));
+    });
+
+    (async () => { await requireAdmin(); await mountAdminShell('customers'); await loadCustomers(); })();
+  </script>
+</body>
+</html>

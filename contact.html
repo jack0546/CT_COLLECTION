@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contact — Luxe Threads</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container" style="padding:32px 16px 80px;">
+    <h1 style="margin:0 0 12px;">Get in Touch</h1>
+    <p class="muted" style="margin-bottom:24px;">We're happy to help. Reach us any time.</p>
+
+    <div class="form-card" id="contact-info">
+      <p class="muted">Loading contact info…</p>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/footer.js"></script>
+  <script>
+    (async () => {
+      const s = await getStoreSettings();
+      const items = [
+        s.contact_phone ? `<p><strong>Phone:</strong> <a href="tel:${s.contact_phone}" style="text-decoration:underline;">${s.contact_phone}</a></p>` : '',
+        s.contact_email ? `<p><strong>Email:</strong> <a href="mailto:${s.contact_email}" style="text-decoration:underline;">${s.contact_email}</a></p>` : '',
+        s.whatsapp_number ? `<p><strong>WhatsApp:</strong> <a href="https://wa.me/${s.whatsapp_number.replace(/\D/g,'')}" target="_blank" rel="noopener" style="text-decoration:underline;">Chat with us</a></p>` : '',
+        s.delivery_info ? `<p><strong>Delivery:</strong> ${s.delivery_info}</p>` : '',
+      ].filter(Boolean).join('');
+      document.getElementById('contact-info').innerHTML =
+        items || '<p class="muted">No contact information set yet.</p>';
+    })();
+  </script>
+</body>
+</html>

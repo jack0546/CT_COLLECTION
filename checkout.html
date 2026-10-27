@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Checkout — Luxe Threads</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container" style="padding:32px 16px 80px;">
+    <h1 style="margin:0 0 20px;">Checkout</h1>
+
+    <form class="form-card" id="checkout-form" novalidate>
+      <div class="form-field">
+        <label>Full name <span class="req">*</span></label>
+        <input id="c-name" required />
+      </div>
+      <div class="form-field">
+        <label>Phone number <span class="req">*</span></label>
+        <input id="c-phone" type="tel" required placeholder="e.g. 0240000000" />
+      </div>
+      <div class="form-field">
+        <label>Delivery location / city <span class="req">*</span></label>
+        <input id="c-location" required />
+      </div>
+      <div class="form-field">
+        <label>Delivery address <span class="req">*</span></label>
+        <input id="c-address" required />
+      </div>
+      <div class="form-field">
+        <label>Additional instructions</label>
+        <textarea id="c-notes" rows="3"></textarea>
+      </div>
+
+      <div id="checkout-summary" class="muted" style="margin:16px 0;"></div>
+
+      <div class="form-actions">
+        <button class="btn btn-green" type="submit">Send Order on WhatsApp</button>
+      </div>
+    </form>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/footer.js"></script>
+  <script src="js/checkout.js"></script>
+</body>
+</html>

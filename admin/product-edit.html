@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Edit Product — Admin</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+  <style>
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+    .field .req { color: #dc2626; }
+    textarea { resize: vertical; min-height: 90px; }
+    .upload-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border: 1px dashed #a3a3a3;
+      border-radius: 6px; cursor: pointer; font-size: 13px; background: #fff;
+    }
+    .upload-btn:hover { border-color: #0a0a0a; }
+    .upload-btn input { display: none; }
+    .save-bar {
+      position: sticky; bottom: 0; background: #fff;
+      border-top: 1px solid #e5e5e5;
+      padding: 14px 20px; margin: 20px -24px -24px;
+      display: flex; justify-content: flex-end; gap: 10px;
+    }
+    .status-msg {
+      padding: 10px 14px; border-radius: 6px; font-size: 13px;
+      margin-bottom: 14px; display: none;
+    }
+    .status-msg.show { display: block; }
+    .status-msg.ok { background: #dcfce7; color: #166534; }
+    .status-msg.err { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body>
+  <div class="admin-shell">
+    <main class="admin-main">
+      <div class="admin-topbar">
+        <h1 id="page-title">New Product</h1>
+        <a href="products.html" class="btn btn-light">← Back to Products</a>
+      </div>
+
+      <div class="status-msg" id="status-msg"></div>
+
+      <form id="product-form">
+        <div class="card">
+          <h2>Product Details</h2>
+
+          <div class="field">
+            <label>Product name <span class="req">*</span></label>
+            <input id="p-name" required />
+          </div>
+
+          <div class="field">
+            <label>Slug (URL-friendly) <span class="req">*</span></label>
+            <input id="p-slug" required placeholder="e.g. premium-cotton-tshirt" />
+            <p class="muted" style="margin:6px 0 0; font-size:12px;">Leave blank to auto-generate from name. Must be unique.</p>
+          </div>
+
+          <div class="field">
+            <label>Description</label>
+            <textarea id="p-description"></textarea>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label>Category</label>
+              <select id="p-category"><option value="">— None —</option></select>
+            </div>
+            <div class="field">
+              <label>Status</label>
+              <select id="p-status">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label>Base price (₵) <span class="req">*</span></label>
+              <input id="p-base-price" type="number" step="0.01" min="0" required />
+            </div>
+            <div class="field">
+              <label>Sale price (₵) — optional</label>
+              <input id="p-sale-price" type="number" step="0.01" min="0" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label><input type="checkbox" id="p-featured" style="width:auto; margin-right:6px;"> Featured product (shown on homepage)</label>
+          </div>
+        </div>
+
+        <div class="card mt-24">
+          <div class="row" style="justify-content: space-between; margin-bottom:16px;">
+            <h2 style="margin:0;">Colours &amp; Sizes</h2>
+            <button type="button" class="btn btn-light btn-sm" id="add-colour-btn">+ Add Colour</button>
+          </div>
+          <p class="muted" style="margin-top:0;">
+            Each colour has its own images and its own sizes with independent stock. When customers select a colour on the product page, only that colour's images will show.
+          </p>
+          <div id="colours-container"></div>
+        </div>
+
+        <div class="save-bar">
+          <button type="button" class="btn btn-light" onclick="location.href='products.html'">Cancel</button>
+          <button type="submit" class="btn btn-dark" id="save-btn">Save Product</button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/admin-auth.js"></script>
+  <script>
+    const productId = qs('id');
+    let pendingColours = [];
+    let categories = [];
+
+    const $ = id => document.getElementById(id);
+    const slugify = s => s.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
+
+    function showStatus(msg, type = 'ok') {
+      const el = $('status-msg');
+      el.className = `status-msg show ${type}`;
+      el.textContent = msg;
+      if (type === 'ok') setTimeout(() => el.classList.remove('show'), 3000);
+    }
+
+    async function loadCategories() {
+      const { data } = await supabaseClient.from('categories').select('*').order('sort_order');
+      categories = data || [];
+      const sel = $('p-category');
+      for (const c of categories) {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.name;
+        sel.appendChild(opt);
+      }
+    }
+
+    async function loadExistingProduct() {
+      if (!productId) return;
+      $('page-title').textContent = 'Edit Product';
+
+      const { data: product, error } = await supabaseClient
+        .from('products')
+        .select('*, variants(*), variant_images(*)')
+        .eq('id', productId).single();
+
+      if (error || !product) {
+        showStatus('Could not load product: ' + (error?.message || 'not found'), 'err');
+        return;
+      }
+
+      $('p-name').value = product.name;
+      $('p-slug').value = product.slug;
+      $('p-description').value = product.description || '';
+      $('p-category').value = product.category_id || '';
+      $('p-status').value = product.status;
+      $('p-base-price').value = product.base_price;
+      $('p-sale-price').value = product.sale_price ?? '';
+      $('p-featured').checked = !!product.featured;
+
+      const colourMap = new Map();
+      for (const v of product.variants || []) {
+        if (!colourMap.has(v.colour_name)) {
+          colourMap.set(v.colour_name, {
+            colour_name: v.colour_name,
+            colour_code: v.colour_code,
+            existingImages: [],
+            newFiles: [],
+            sizes: [],
+          });
+        }
+        colourMap.get(v.colour_name).sizes.push({
+          id: v.id, size: v.size, sku: v.sku || '', price: v.price ?? '', stock_quantity: v.stock_quantity,
+        });
+      }
+      for (const img of product.variant_images || []) {
+        if (!colourMap.has(img.colour_name)) {
+          colourMap.set(img.colour_name, {
+            colour_name: img.colour_name, colour_code: '#000000',
+            existingImages: [], newFiles: [], sizes: [],
+          });
+        }
+        colourMap.get(img.colour_name).existingImages.push({ id: img.id, image_url: img.image_url });
+      }
+
+      pendingColours = Array.from(colourMap.values());
+      renderColours();
+    }
+
+    function renderColours() {
+      const container = $('colours-container');
+      if (!pendingColours.length) {
+        container.innerHTML = `
+          <div class="empty-state" style="padding:30px; text-align:center; color:#737373; font-size:14px; border:1px dashed #d4d4d4; border-radius:8px;">
+            No colours added yet. Click "+ Add Colour" to start.
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = pendingColours.map((c, i) => `
+        <div class="colour-block" data-colour-index="${i}">
+          <div class="colour-block-header">
+            <div class="colour-swatch-preview" style="background:${c.colour_code || '#000000'};"></div>
+            <input type="text" data-field="colour_name" placeholder="Colour name (e.g. Black)" value="${c.colour_name || ''}" />
+            <input type="color" data-field="colour_code" value="${c.colour_code || '#000000'}" style="width:50px; padding:2px;" />
+            <button type="button" class="btn btn-red btn-sm" data-remove-colour="${i}">Remove</button>
+          </div>
+          <div>
+            <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">Images for this colour</label>
+            <div class="image-thumbs" data-images="${i}"></div>
+            <label class="upload-btn" style="margin-top:8px;">
+              + Upload images
+              <input type="file" accept="image/*" multiple data-upload="${i}">
+            </label>
+          </div>
+          <div class="size-rows">
+            <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">Sizes &amp; stock</label>
+            <div data-sizes="${i}"></div>
+            <button type="button" class="btn btn-light btn-sm" data-add-size="${i}" style="margin-top:6px;">+ Add Size</button>
+          </div>
+        </div>
+      `).join('');
+
+      pendingColours.forEach((c, i) => {
+        renderColourImages(i);
+        renderColourSizes(i);
+      });
+      wireColourBlockEvents();
+    }
+
+    function renderColourImages(colourIdx) {
+      const c = pendingColours[colourIdx];
+      const wrap = document.querySelector(`[data-images="${colourIdx}"]`);
+      if (!wrap) return;
+
+      const html = [];
+      c.existingImages.forEach((img, idx) => {
+        html.push(`
+          <div class="thumb" data-existing-img="${idx}">
+            <img src="${img.image_url}" alt="">
+            <button type="button" class="remove-img" data-rm-existing="${idx}">×</button>
+          </div>
+        `);
+      });
+      c.newFiles.forEach((file, idx) => {
+        const url = URL.createObjectURL(file);
+        html.push(`
+          <div class="thumb" data-new-img="${idx}">
+            <img src="${url}" alt="">
+            <button type="button" class="remove-img" data-rm-new="${idx}">×</button>
+          </div>
+        `);
+      });
+      wrap.innerHTML = html.join('') || '<p class="muted" style="margin:0;">No images uploaded yet.</p>';
+
+      wrap.querySelectorAll('[data-rm-existing]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = Number(btn.dataset.rmExisting);
+          const removed = c.existingImages.splice(idx, 1)[0];
+          c._deletedImages = (c._deletedImages || []).concat(removed.id);
+          renderColourImages(colourIdx);
+        });
+      });
+      wrap.querySelectorAll('[data-rm-new]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          c.newFiles.splice(Number(btn.dataset.rmNew), 1);
+          renderColourImages(colourIdx);
+        });
+      });
+    }
+
+    function renderColourSizes(colourIdx) {
+      const c = pendingColours[colourIdx];
+      const wrap = document.querySelector(`[data-sizes="${colourIdx}"]`);
+      if (!wrap) return;
+      if (!c.sizes.length) { wrap.innerHTML = '<p class="muted" style="margin:0;">No sizes yet.</p>'; return; }
+
+      wrap.innerHTML = c.sizes.map((s, idx) => `
+        <div class="size-row" data-size-row="${idx}">
+          <input type="text" placeholder="Size (S/M/L)" value="${s.size || ''}" data-sf="size" />
+          <input type="text" placeholder="SKU" value="${s.sku || ''}" data-sf="sku" />
+          <input type="number" placeholder="Price override (optional)" value="${s.price ?? ''}" data-sf="price" />
+          <div style="display:flex; gap:6px; align-items:center;">
+            <input type="number" placeholder="Stock" min="0" value="${s.stock_quantity ?? 0}" data-sf="stock_quantity" style="width:80px;" />
+            <button type="button" class="remove-size" data-rm-size="${idx}">×</button>
+          </div>
+        </div>
+      `).join('');
+
+      wrap.querySelectorAll('[data-sf]').forEach(input => {
+        input.addEventListener('input', () => {
+          const row = input.closest('.size-row');
+          const idx = Number(row.dataset.sizeRow);
+          const field = input.dataset.sf;
+          if (field === 'price') c.sizes[idx].price = input.value === '' ? null : Number(input.value);
+          else if (field === 'stock_quantity') c.sizes[idx].stock_quantity = Number(input.value) || 0;
+          else c.sizes[idx][field] = input.value;
+        });
+      });
+
+      wrap.querySelectorAll('[data-rm-size]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          c.sizes.splice(Number(btn.dataset.rmSize), 1);
+          renderColourSizes(colourIdx);
+        });
+      });
+    }
+
+    function wireColourBlockEvents() {
+      document.querySelectorAll('[data-remove-colour]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (!confirm('Remove this colour and all its images and sizes?')) return;
+          pendingColours.splice(Number(btn.dataset.removeColour), 1);
+          renderColours();
+        });
+      });
+      document.querySelectorAll('[data-field="colour_name"]').forEach(input => {
+        input.addEventListener('input', () => {
+          const idx = Number(input.closest('.colour-block').dataset.colourIndex);
+          pendingColours[idx].colour_name = input.value;
+        });
+      });
+      document.querySelectorAll('[data-field="colour_code"]').forEach(input => {
+        input.addEventListener('input', () => {
+          const idx = Number(input.closest('.colour-block').dataset.colourIndex);
+          pendingColours[idx].colour_code = input.value;
+          const preview = input.closest('.colour-block-header').querySelector('.colour-swatch-preview');
+          if (preview) preview.style.background = input.value;
+        });
+      });
+      document.querySelectorAll('[data-upload]').forEach(input => {
+        input.addEventListener('change', e => {
+          const idx = Number(input.dataset.upload);
+          const files = Array.from(e.target.files || []);
+          pendingColours[idx].newFiles.push(...files);
+          renderColourImages(idx);
+          input.value = '';
+        });
+      });
+      document.querySelectorAll('[data-add-size]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = Number(btn.dataset.addSize);
+          pendingColours[idx].sizes.push({ size: '', sku: '', price: null, stock_quantity: 0 });
+          renderColourSizes(idx);
+        });
+      });
+    }
+
+    $('add-colour-btn').addEventListener('click', () => {
+      pendingColours.push({
+        colour_name: '', colour_code: '#000000',
+        existingImages: [], newFiles: [],
+        sizes: [{ size: 'S', sku: '', price: null, stock_quantity: 10 }],
+      });
+      renderColours();
+    });
+
+    async function uploadFile(file, productId) {
+      const ext = file.name.split('.').pop();
+      const path = `${productId}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabaseClient.storage
+        .from('product-images')
+        .upload(path, file, { cacheControl: '3600', upsert: false });
+      if (error) throw error;
+      
+      // FIXED HERE: Changed supabase to supabaseClient
+      const { data } = supabaseClient.storage.from('product-images').getPublicUrl(path);
+      return data.publicUrl;
+    }
+
+    $('product-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = $('save-btn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving…';
+
+      try {
+        const name = $('p-name').value.trim();
+        if (!name) throw new Error('Product name is required.');
+        const basePrice = Number($('p-base-price').value);
+        if (!basePrice || basePrice < 0) throw new Error('Base price is required.');
+
+        let slug = $('p-slug').value.trim() || slugify(name);
+
+        for (const c of pendingColours) {
+          if (!c.colour_name.trim()) throw new Error('Every colour needs a name.');
+          if (!c.sizes.length) throw new Error(`Colour "${c.colour_name}" needs at least one size.`);
+          for (const s of c.sizes) {
+            if (!s.size.trim()) throw new Error(`A size is missing a label in colour "${c.colour_name}".`);
+          }
+        }
+
+        let pid = productId;
+        const productPayload = {
+          name, slug,
+          description: $('p-description').value.trim() || null,
+          category_id: $('p-category').value || null,
+          base_price: basePrice,
+          sale_price: $('p-sale-price').value ? Number($('p-sale-price').value) : null,
+          featured: $('p-featured').checked,
+          status: $('p-status').value,
+        };
+
+        if (pid) {
+          const { error } = await supabaseClient.from('products').update(productPayload).eq('id', pid);
+          if (error) throw new Error('Update product: ' + error.message);
+        } else {
+          const { data, error } = await supabaseClient.from('products').insert(productPayload).select().single();
+          if (error) throw new Error('Insert product: ' + error.message);
+          pid = data.id;
+        }
+
+        await supabaseClient.from('variants').delete().eq('product_id', pid);
+        for (const c of pendingColours) {
+          if (c._deletedImages?.length) {
+            await supabaseClient.from('variant_images').delete().in('id', c._deletedImages);
+          }
+        }
+
+        for (const c of pendingColours) {
+          for (const file of c.newFiles) {
+            const url = await uploadFile(file, pid);
+            const { error } = await supabaseClient.from('variant_images').insert({
+              product_id: pid, colour_name: c.colour_name, image_url: url, sort_order: 0,
+            });
+            if (error) throw new Error('Insert image: ' + error.message);
+          }
+          const variantRows = c.sizes.map(s => ({
+            product_id: pid,
+            colour_name: c.colour_name,
+            colour_code: c.colour_code,
+            size: s.size.trim(),
+            sku: s.sku?.trim() || null,
+            price: s.price === null || s.price === '' ? null : Number(s.price),
+            stock_quantity: Number(s.stock_quantity) || 0,
+            status: 'active',
+          }));
+          const { error: vErr } = await supabaseClient.from('variants').insert(variantRows);
+          if (vErr) throw new Error('Insert variants: ' + vErr.message);
+        }
+
+        showStatus('Saved ✓', 'ok');
+        setTimeout(() => location.href = 'products.html', 800);
+      } catch (err) {
+        console.error(err);
+        showStatus(err.message || 'Save failed', 'err');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Product';
+      }
+    });
+
+    (async () => {
+      await requireAdmin();
+      await mountAdminShell('products');
+      await loadCategories();
+      await loadExistingProduct();
+      $('p-name').addEventListener('blur', () => {
+        if (!$('p-slug').value.trim() && !productId) {
+          $('p-slug').value = slugify($('p-name').value);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

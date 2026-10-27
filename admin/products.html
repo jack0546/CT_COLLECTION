@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Products — Admin</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body>
+  <div class="admin-shell">
+    <main class="admin-main">
+      <div class="admin-topbar">
+        <h1>Products</h1>
+        <a href="product-edit.html" class="btn btn-dark">+ New Product</a>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="admin-table" id="products-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Base price</th>
+                <th>Sale price</th>
+                <th>Featured</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="8" class="muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/admin-auth.js"></script>
+  <script>
+    async function loadProducts() {
+      const { data, error } = await supabaseClient
+        .from('products')
+        .select('*, variant_images(*), categories(name)')
+        .order('created_at', { ascending: false });
+
+      const tbody = document.querySelector('#products-table tbody');
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="8" class="muted">Error: ${error.message}</td></tr>`;
+        return;
+      }
+      if (!data?.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="muted">No products yet. Click "New Product" to add one.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.map(p => {
+        const img = p.variant_images?.[0]?.image_url || '';
+        return `
+          <tr>
+            <td>${img ? `<img src="${img}" class="thumb-sm" alt="">` : ''}</td>
+            <td>${p.name}</td>
+            <td>${p.categories?.name ?? '—'}</td>
+            <td>₵ ${Number(p.base_price).toFixed(2)}</td>
+            <td>${p.sale_price ? `₵ ${Number(p.sale_price).toFixed(2)}` : '—'}</td>
+            <td>${p.featured ? 'Yes' : '—'}</td>
+            <td>
+              <span class="badge ${p.status === 'active' ? 'badge-delivered' : 'badge-cancelled'}">
+                ${p.status}
+              </span>
+            </td>
+            <td style="white-space:nowrap;">
+              <a class="btn btn-light btn-sm" href="product-edit.html?id=${p.id}">Edit</a>
+              <button class="btn btn-red btn-sm" data-del="${p.id}">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      tbody.querySelectorAll('[data-del]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this product and all its variants/images?')) return;
+          const id = btn.dataset.del;
+          await supabaseClient.from('variant_images').delete().eq('product_id', id);
+          await supabaseClient.from('variants').delete().eq('product_id', id);
+          await supabaseClient.from('products').delete().eq('id', id);
+          loadProducts();
+        });
+      });
+    }
+
+    (async () => {
+      await requireAdmin();
+      await mountAdminShell('products');
+      await loadProducts();
+    })();
+  </script>
+</body>
+</html>

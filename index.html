@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Luxe Threads — Discover Your Style</title>
+    <meta name="theme-color" content="#0a0a0a">
+  <link rel="manifest" href="manifest.json">
+  <meta name="description" content="Premium fashion delivered to your door. Order easily via WhatsApp." />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <section class="hero">
+    <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=2000&q=80" alt="Fashion collection" />
+    <div class="hero-inner">
+      <p class="hero-eyebrow">Spring · Summer 2025</p>
+      <h1>Discover Your Style.</h1>
+      <p>Premium fashion crafted for everyday confidence. Order in seconds via WhatsApp.</p>
+      <div class="hero-cta">
+        <a class="btn btn-light" href="shop.html">Shop Now</a>
+        <a class="btn btn-ghost" href="shop.html?view=new">New Arrivals</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Categories -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <div><p>Browse by</p><h2>Clothing Categories</h2></div>
+        <a href="shop.html">All categories</a>
+      </div>
+    </div>
+    <div class="category-grid" id="category-grid"></div>
+  </section>
+
+  <!-- Featured -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <div><p>Hand-picked</p><h2>Featured Products</h2></div>
+        <a href="shop.html">View all</a>
+      </div>
+    </div>
+    <div class="product-grid" id="featured-grid"></div>
+  </section>
+
+  <!-- New arrivals -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <div><p>Fresh drops</p><h2>New Arrivals</h2></div>
+        <a href="shop.html?view=new">View all</a>
+      </div>
+    </div>
+    <div class="product-grid" id="new-grid"></div>
+  </section>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/footer.js"></script>
+  <script src="js/home.js"></script>
+    <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW failed', err));
+      });
+    }
+  </script>
+</body>
+</html>

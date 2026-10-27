@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard — Admin</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+  <style>
+    body { background: #f8fafc; }
+    .admin-main { padding: 32px; max-width: 1300px; }
+    
+    .dash-header { margin-bottom: 24px; }
+    .dash-header h1 { font-size: 28px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
+    .dash-header p { color: #64748b; font-size: 14px; margin: 0; }
+
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .metric-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    .metric-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .metric-title { font-size: 13px; font-weight: 600; color: #64748b; margin: 0; }
+    .metric-icon { width: 32px; height: 32px; border-radius: 8px; background: #f0fdf4; display: flex; align-items: center; justify-content: center; color: #16a34a; }
+    .metric-value { font-size: 26px; font-weight: 700; color: #0f172a; margin: 0 0 8px; }
+    .metric-trend { font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+    .trend-up { color: #16a34a; }
+    .trend-down { color: #dc2626; }
+    .metric-trend span { color: #94a3b8; font-weight: 400; }
+
+    .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px; }
+    @media (max-width: 1024px) { .charts-grid { grid-template-columns: 1fr; } }
+    
+    .chart-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; }
+    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .chart-header h2 { font-size: 16px; font-weight: 600; color: #1e293b; margin: 0; }
+    
+    .chart-filters { display: flex; gap: 6px; background: #f1f5f9; padding: 4px; border-radius: 8px; }
+    .chart-filters button { border: none; background: transparent; padding: 6px 12px; font-size: 12px; font-weight: 500; color: #64748b; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+    .chart-filters button.active { background: #fff; color: #0f172a; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+
+    .bar-chart { 
+      display: flex; 
+      align-items: flex-end; 
+      gap: 12px; 
+      height: 220px; 
+      padding-bottom: 24px; 
+      border-bottom: 1px solid #e2e8f0; 
+      position: relative; 
+      background-image: linear-gradient(to bottom, #f1f5f9 1px, transparent 1px);
+      background-size: 100% 50px;
+    }
+    .bar-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; z-index: 2; height: 100%; }
+    .bar-fill { width: 100%; max-width: 32px; background: #bbf7d0; border-radius: 6px 6px 0 0; transition: height 0.5s; position: relative; }
+    .bar-fill:hover { background: #16a34a; }
+    .bar-label { position: absolute; bottom: -24px; font-size: 11px; color: #64748b; white-space: nowrap; }
+    .bar-val { position: absolute; top: -20px; font-size: 11px; font-weight: 600; color: #1e293b; opacity: 0; transition: opacity 0.2s; }
+    .bar-col:hover .bar-val { opacity: 1; }
+
+    .seller-item { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .seller-rank { width: 24px; height: 24px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #64748b; flex-shrink: 0; }
+    .seller-info { flex: 1; }
+    .seller-name { font-size: 13px; font-weight: 600; color: #1e293b; margin: 0 0 2px; }
+    .seller-qty { font-size: 12px; color: #64748b; margin: 0; }
+    .seller-rev { font-size: 13px; font-weight: 600; color: #16a34a; }
+
+    .card { border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    .admin-table th { background: transparent; border-bottom: 1px solid #e2e8f0; padding: 12px 16px; }
+    .admin-table td { padding: 16px; }
+  </style>
+</head>
+<body>
+  <div class="admin-shell">
+    <main class="admin-main">
+      
+      <div class="dash-header">
+        <h1>Analytics Overview</h1>
+        <p>Welcome back! Here is how your store is performing.</p>
+      </div>
+
+      <!-- LOW STOCK ALERT CONTAINER -->
+      <div id="low-stock-container" style="display:none; background:#fef2f2; border:1px solid #fecaca; border-radius: 16px; padding: 20px; margin-bottom: 24px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <h2 style="font-size:16px; font-weight:600; color:#991b1b; margin:0;">Low Stock Alerts</h2>
+        </div>
+        <ul id="low-stock-list" style="margin:0; padding-left:20px; color:#991b1b; font-size:14px; line-height:1.6;"></ul>
+      </div>
+
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-top">
+            <p class="metric-title">Sales Revenue</p>
+            <div class="metric-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          </div>
+          <p class="metric-value" id="stat-revenue">₵ 0.00</p>
+          <div class="metric-trend trend-up">↑ 12.5% <span>vs last month</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-top">
+            <p class="metric-title">Orders This Month</p>
+            <div class="metric-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
+          </div>
+          <p class="metric-value" id="stat-orders">0</p>
+          <div class="metric-trend trend-up">↑ 8.2% <span>vs last month</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-top">
+            <p class="metric-title">Total Products</p>
+            <div class="metric-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
+          </div>
+          <p class="metric-value" id="stat-products">0</p>
+          <div class="metric-trend"><span>Active in store</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-top">
+            <p class="metric-title">Pending Orders</p>
+            <div class="metric-icon" style="background:#fef2f2; color:#dc2626;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          </div>
+          <p class="metric-value" id="stat-pending">0</p>
+          <div class="metric-trend trend-down">↓ 2.1% <span>needs attention</span></div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h2>Sales Growth</h2>
+            <div class="chart-filters">
+              <button data-filter="today" class="active">Today</button>
+              <button data-filter="week">This Week</button>
+              <button data-filter="month">This Month</button>
+              <button data-filter="year">This Year</button>
+            </div>
+          </div>
+          <div class="bar-chart" id="sales-chart"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header"><h2>Top 5 Best Sellers</h2></div>
+          <div id="top-products-list"></div>
+        </div>
+      </div>
+
+      <div class="card mt-24">
+        <div class="chart-header" style="padding: 20px 20px 0 20px;"><h2>Recent Orders</h2></div>
+        <div class="table-wrap">
+          <table class="admin-table" id="recent-orders">
+            <thead><tr><th>Reference</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/admin-auth.js"></script>
+  <script>
+    let globalOrders = [];
+
+    function renderChart(filterType) {
+      const chartEl = document.getElementById('sales-chart');
+      const now = new Date();
+      const buckets = {};
+
+      if (filterType === 'today') {
+        for (let i = 0; i < 24; i+=2) buckets[`${i}:00`] = 0;
+        globalOrders.forEach(o => {
+          if (o.status === 'cancelled') return;
+          const d = new Date(o.created_at);
+          if (d.toDateString() === now.toDateString()) {
+            const hr = d.getHours();
+            const bucket = hr - (hr % 2);
+            buckets[`${bucket}:00`] += Number(o.total_amount);
+          }
+        });
+      } else if (filterType === 'week') {
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(); d.setDate(d.getDate() - i);
+          buckets[d.toLocaleDateString('en-US', { weekday: 'short' })] = 0;
+        }
+        globalOrders.forEach(o => {
+          if (o.status === 'cancelled') return;
+          const d = new Date(o.created_at);
+          const diff = Math.floor((now - d) / (1000 * 60 * 60 * 24));
+          if (diff < 7) {
+            const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+            if (buckets[dayName] !== undefined) buckets[dayName] += Number(o.total_amount);
+          }
+        });
+      } else if (filterType === 'month') {
+        buckets['Week 1'] = 0; buckets['Week 2'] = 0; buckets['Week 3'] = 0; buckets['Week 4'] = 0; buckets['Week 5'] = 0;
+        globalOrders.forEach(o => {
+          if (o.status === 'cancelled') return;
+          const d = new Date(o.created_at);
+          if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+            const day = d.getDate();
+            let w = 'Week 1';
+            if (day > 7 && day <= 14) w = 'Week 2';
+            else if (day > 14 && day <= 21) w = 'Week 3';
+            else if (day > 21 && day <= 28) w = 'Week 4';
+            else if (day > 28) w = 'Week 5';
+            buckets[w] += Number(o.total_amount);
+          }
+        });
+      } else if (filterType === 'year') {
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        months.forEach(m => buckets[m] = 0);
+        globalOrders.forEach(o => {
+          if (o.status === 'cancelled') return;
+          const d = new Date(o.created_at);
+          if (d.getFullYear() === now.getFullYear()) {
+            buckets[months[d.getMonth()]] += Number(o.total_amount);
+          }
+        });
+      }
+
+      const vals = Object.values(buckets);
+      const maxVal = Math.max(...vals); 
+      const totalSalesInPeriod = vals.reduce((a, b) => a + b, 0);
+
+      if (totalSalesInPeriod === 0) {
+        chartEl.innerHTML = `
+          <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:14px; z-index: 10;">
+            No sales recorded for this period.
+          </div>
+          ${Object.keys(buckets).map(label => `
+            <div class="bar-col">
+              <div class="bar-fill" style="height: 2px; opacity: 0.3;"></div>
+              <span class="bar-label">${label}</span>
+            </div>
+          `).join('')}
+        `;
+        return;
+      }
+
+      chartEl.innerHTML = Object.entries(buckets).map(([label, val]) => {
+        const heightPct = (val / maxVal) * 100; 
+        return `
+          <div class="bar-col">
+            <div class="bar-fill" style="height: ${heightPct}%;">
+              ${val > 0 ? `<span class="bar-val">₵${val.toFixed(0)}</span>` : ''}
+            </div>
+            <span class="bar-label">${label}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    (async () => {
+      await requireAdmin();
+      await mountAdminShell('dashboard');
+
+      const [{ count: pCount }, { count: pendCount }] = await Promise.all([
+        supabaseClient.from('products').select('*', { count: 'exact', head: true }),
+        supabaseClient.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      ]);
+      document.getElementById('stat-products').textContent = pCount ?? 0;
+      document.getElementById('stat-pending').textContent = pendCount ?? 0;
+
+      // FETCH LOW STOCK VARIANTS
+      const { data: lowStockVariants } = await supabaseClient
+        .from('variants')
+        .select('size, stock_quantity, products(name)')
+        .lte('stock_quantity', 3)
+        .eq('status', 'active');
+
+      if (lowStockVariants && lowStockVariants.length > 0) {
+        document.getElementById('low-stock-container').style.display = 'block';
+        document.getElementById('low-stock-list').innerHTML = lowStockVariants.map(v => `
+          <li><strong>${escapeHtml(v.products?.name || 'Unknown Product')}</strong> — Size: ${escapeHtml(v.size)} (Only ${v.stock_quantity} left!)</li>
+        `).join('');
+      }
+
+      const { data: orders } = await supabaseClient.from('orders').select('*').order('created_at', { ascending: false });
+      if (!orders) return;
+      globalOrders = orders;
+
+      let totalRevenue = 0;
+      let monthOrders = 0;
+      const currentMonth = new Date().getMonth();
+      const productSales = {}; 
+
+      orders.forEach(o => {
+        if (o.status !== 'cancelled') {
+          totalRevenue += Number(o.total_amount);
+          if (Array.isArray(o.order_items)) {
+            o.order_items.forEach(item => {
+              if (!productSales[item.productName]) productSales[item.productName] = { qty: 0, revenue: 0 };
+              productSales[item.productName].qty += item.quantity;
+              productSales[item.productName].revenue += (item.unitPrice * item.quantity);
+            });
+          }
+        }
+        const oDate = new Date(o.created_at);
+        if (oDate.getMonth() === currentMonth && oDate.getFullYear() === new Date().getFullYear()) monthOrders++;
+      });
+
+      document.getElementById('stat-revenue').textContent = `₵ ${totalRevenue.toFixed(2)}`;
+      document.getElementById('stat-orders').textContent = monthOrders;
+
+      const topProducts = Object.entries(productSales).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
+      const topList = document.getElementById('top-products-list');
+      if (topProducts.length === 0) topList.innerHTML = '<p class="muted">No sales yet.</p>';
+      else {
+        topList.innerHTML = topProducts.map(([name, stats], i) => `
+          <div class="seller-item">
+            <div class="seller-rank">${i + 1}</div>
+            <div class="seller-info">
+              <p class="seller-name">${escapeHtml(name)}</p>
+              <p class="seller-qty">${stats.qty} units sold</p>
+            </div>
+            <div class="seller-rev">₵${stats.revenue.toFixed(0)}</div>
+          </div>
+        `).join('');
+      }
+
+      const tbody = document.querySelector('#recent-orders tbody');
+      tbody.innerHTML = orders.length === 0 ? '<tr><td colspan="5" class="muted">No orders yet.</td></tr>' :
+        orders.slice(0, 5).map(o => `
+          <tr>
+            <td><strong>${o.order_reference}</strong></td>
+            <td>${escapeHtml(o.customer_name)}<br><span class="muted">${o.customer_phone}</span></td>
+            <td>₵ ${Number(o.total_amount).toFixed(2)}</td>
+            <td><span class="badge badge-${o.status}">${o.status}</span></td>
+            <td>${new Date(o.created_at).toLocaleDateString()}</td>
+          </tr>
+        `).join('');
+
+      renderChart('today');
+
+      document.querySelectorAll('.chart-filters button').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('.chart-filters button').forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          renderChart(e.target.dataset.filter);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

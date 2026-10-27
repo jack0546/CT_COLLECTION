@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Product — Luxe Threads</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container" id="product-root">
+    <p style="padding:40px 0; text-align:center;" class="muted">Loading product…</p>
+  </main>
+
+  <!-- Related Products Section -->
+  <section class="section container" id="related-section" style="display:none; border-top: 1px solid #e5e5e5;">
+    <div class="section-head">
+      <div><p>Complete the look</p><h2>You May Also Like</h2></div>
+    </div>
+    <div class="product-grid" id="related-grid"></div>
+  </section>
+
+  <!-- Reviews Section -->
+  <section class="section container" style="border-top: 1px solid #e5e5e5;">
+    <div class="section-head">
+      <div><p>What customers say</p><h2>Customer Reviews</h2></div>
+    </div>
+    <div id="reviews-list" style="margin-bottom: 30px;"></div>
+    
+    <div class="form-card" style="margin: 0;">
+      <h3 style="margin-top:0;">Leave a Review</h3>
+      <form id="review-form">
+        <div class="form-field"><label>Your Name</label><input id="r-name" required /></div>
+        <div class="form-field"><label>Rating</label>
+          <select id="r-rating" required>
+            <option value="5">5 Stars - Excellent</option>
+            <option value="4">4 Stars - Good</option>
+            <option value="3">3 Stars - Average</option>
+            <option value="2">2 Stars - Poor</option>
+            <option value="1">1 Star - Terrible</option>
+          </select>
+        </div>
+        <div class="form-field"><label>Comment</label><textarea id="r-comment" rows="3" required></textarea></div>
+        <button type="submit" class="btn btn-dark" style="width:100%;">Submit Review</button>
+        <p id="r-msg" style="text-align:center; margin-top:10px; font-size:13px; display:none;"></p>
+      </form>
+    </div>
+  </section>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/footer.js"></script>
+  <script src="js/product.js"></script>
+</body>
+</html>
