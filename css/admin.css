@@ -8,13 +8,43 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #0a0a0a
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-.admin-shell { display: grid; min-height: 100vh; grid-template-columns: 220px 1fr; }
-@media (max-width: 767px) {
-  .admin-shell { grid-template-columns: 1fr; }
-  .admin-sidebar { display: none; }
-  .admin-sidebar.open { display: block; }
+/* =========================================
+   BASE LAYOUT (DESKTOP & TABLET)
+   ========================================= */
+.admin-shell { 
+  display: flex; /* Using flex instead of grid fixes the sidebar overlay issue */
+  min-height: 100vh; 
+  width: 100%;
 }
-.admin-sidebar { background: #0a0a0a; color: #d4d4d4; padding: 20px 0; }
+
+.admin-sidebar { 
+  width: 240px;
+  flex-shrink: 0;
+  background: #0a0a0a; 
+  color: #d4d4d4; 
+  padding: 20px 0; 
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+}
+
+.admin-main { 
+  flex: 1; /* Takes up remaining space */
+  padding: 24px; 
+  max-width: 1200px; 
+  min-width: 0; /* Prevents flex child from overflowing tables */
+}
+
+.admin-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.admin-topbar h1 { margin: 0; font-size: 24px; font-weight: 600; }
+
+/* Hide mobile elements on desktop */
+.admin-mobile-bar { display: none; }
+
+/* =========================================
+   SIDEBAR CONTENTS
+   ========================================= */
 .admin-sidebar .brand { padding: 0 20px 20px; font-size: 18px; font-weight: 700; color: #fff; border-bottom: 1px solid #262626; }
 .admin-sidebar nav { padding: 16px 0; }
 .admin-sidebar nav a { display: block; padding: 10px 20px; font-size: 14px; color: #a3a3a3; }
@@ -23,14 +53,9 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
 .admin-sidebar .user-block { padding: 16px 20px; border-top: 1px solid #262626; font-size: 12px; color: #737373; }
 .admin-sidebar .user-block button { color: #ef4444; margin-top: 8px; font-size: 12px; text-decoration: underline; }
 
-.admin-main { padding: 24px; max-width: 1200px; }
-.admin-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.admin-topbar h1 { margin: 0; font-size: 24px; font-weight: 600; }
-
-.admin-mobile-bar { display: none; background: #0a0a0a; color: #fff; padding: 12px 16px; align-items: center; justify-content: space-between; }
-@media (max-width: 767px) { .admin-mobile-bar { display: flex; } }
-.admin-mobile-bar button { color: #fff; font-size: 20px; }
-
+/* =========================================
+   BUTTONS & UTILITIES
+   ========================================= */
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: opacity .15s; }
 .btn:hover { opacity: .85; }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
@@ -40,21 +65,33 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
 .btn-red    { background: #dc2626; color: #fff; }
 .btn-sm     { padding: 5px 10px; font-size: 12px; }
 
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.grow { flex: 1; }
+.muted { color: #737373; font-size: 13px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.hidden { display: none !important; }
+
+/* =========================================
+   CARDS & TABLES
+   ========================================= */
 .card { background: #fff; border-radius: 10px; border: 1px solid #e5e5e5; padding: 20px; }
 .card h2 { margin: 0 0 16px; font-size: 16px; font-weight: 600; }
 
-.stat-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
-.stat { background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; padding: 16px; }
-.stat .label { font-size: 12px; color: #737373; text-transform: uppercase; letter-spacing: .05em; }
-.stat .value { font-size: 26px; font-weight: 600; margin-top: 6px; }
-
-.table-wrap { overflow-x: auto; }
+.table-wrap { 
+  overflow-x: auto; 
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
 table.admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .admin-table th, .admin-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e5e5e5; vertical-align: middle; }
-.admin-table th { background: #fafafa; font-weight: 500; font-size: 12px; color: #525252; text-transform: uppercase; letter-spacing: .04em; }
+.admin-table th { background: #fafafa; font-weight: 500; font-size: 12px; color: #525252; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
 .admin-table tr:hover td { background: #fafafa; }
 .admin-table .thumb-sm { width: 40px; height: 50px; object-fit: cover; border-radius: 4px; }
 
+/* =========================================
+   BADGES
+   ========================================= */
 .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; }
 .badge-pending    { background: #fef3c7; color: #92400e; }
 .badge-confirmed  { background: #dbeafe; color: #1e40af; }
@@ -63,10 +100,13 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .badge-delivered  { background: #dcfce7; color: #166534; }
 .badge-cancelled  { background: #fee2e2; color: #991b1b; }
 
+/* =========================================
+   PRODUCT EDIT BLOCKS
+   ========================================= */
 .colour-block { border: 1px solid #e5e5e5; border-radius: 10px; padding: 16px; margin-bottom: 14px; background: #fafafa; }
-.colour-block-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.colour-block-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
 .colour-swatch-preview { width: 28px; height: 28px; border-radius: 999px; border: 1px solid #d4d4d4; flex-shrink: 0; }
-.colour-block-header input[type="text"] { flex: 1; }
+.colour-block-header input[type="text"] { flex: 1; min-width: 150px; }
 
 .image-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .image-thumbs .thumb { position: relative; width: 72px; height: 90px; border-radius: 6px; overflow: hidden; border: 1px solid #e5e5e5; background: #fff; }
@@ -78,6 +118,9 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .size-row input { padding: 6px 10px; font-size: 13px; }
 .size-row .remove-size { color: #dc2626; font-size: 16px; padding: 4px 8px; }
 
+/* =========================================
+   LOGIN PAGE
+   ========================================= */
 .login-shell { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
 .login-card { background: #fff; border-radius: 12px; border: 1px solid #e5e5e5; padding: 32px; width: 100%; max-width: 380px; }
 .login-card h1 { margin: 0 0 8px; font-size: 22px; }
@@ -87,9 +130,119 @@ table.admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .login-error { background: #fee2e2; color: #991b1b; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-top: 14px; display: none; }
 .login-error.show { display: block; }
 
-.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.grow { flex: 1; }
-.muted { color: #737373; font-size: 13px; }
-.mt-16 { margin-top: 16px; }
-.mt-24 { margin-top: 24px; }
-.hidden { display: none !important; }
+/* =========================================
+   TABLET RESPONSIVENESS (768px - 1024px)
+   ========================================= */
+@media (max-width: 1024px) {
+  .admin-sidebar { width: 200px; } /* Shrink sidebar slightly to give tables more room */
+  .admin-main { padding: 20px; }
+}
+
+/* =========================================
+   MOBILE RESPONSIVENESS (Below 768px)
+   ========================================= */
+@media (max-width: 767px) {
+  /* 1. Mobile layout is a single block */
+  .admin-shell { 
+    display: block !important; 
+  }
+  
+  /* 2. Mobile top bar is visible */
+  .admin-mobile-bar { 
+    display: flex; 
+    position: sticky; 
+    top: 0; 
+    z-index: 50;
+    background: #0a0a0a; 
+    color: #fff; 
+    padding: 12px 16px; 
+    align-items: center; 
+    justify-content: space-between;
+  }
+
+  .admin-mobile-bar button {
+    color: #fff;
+    font-size: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0 8px;
+  }
+
+  /* 3. Sidebar becomes a hidden slide-out drawer */
+  .admin-sidebar { 
+    display: none; 
+    position: fixed !important; 
+    top: 0; 
+    left: 0; 
+    bottom: 0;
+    width: 260px;
+    height: 100vh;
+    z-index: 9999; 
+    box-shadow: 4px 0 15px rgba(0,0,0,0.5);
+    overflow-y: auto;
+    background: #0a0a0a;
+  }
+  
+  .admin-sidebar.open { 
+    display: block !important; 
+  }
+
+  /* 4. Main content fills the width */
+  .admin-main {
+    padding: 16px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* 5. Stack topbar buttons */
+  .admin-topbar {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+  .admin-topbar > div {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .admin-topbar .btn {
+    flex: 1;
+    justify-content: center;
+    padding: 10px;
+  }
+
+  /* 6. Force table wrap to scroll horizontally */
+  .table-wrap {
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+  }
+  .admin-table {
+    min-width: 800px; /* Keeps columns readable, allows swipe */
+  }
+
+  /* 7. Stack toolbars and filters */
+  .orders-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .orders-toolbar input, 
+  .orders-toolbar select {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  /* 8. Stack two-column forms */
+  .grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* 9. Stack size rows on mobile */
+  .size-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .size-row > div {
+    grid-column: span 2;
+  }
+}
