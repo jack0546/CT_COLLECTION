@@ -199,9 +199,10 @@ async function mountProduct() {
       <a href="index.html">Home</a> / <a href="shop.html">Shop</a> / <span style="color:#0a0a0a;">${escapeHtml(currentProduct.name)}</span>
     </div>
     <div class="pd-layout">
+      <!-- THUMBS ARE NOW FIRST (LEFT) -->
       <div class="pd-gallery">
-        <div class="main-image" id="pd-main-image"></div>
         <div class="pd-thumbs" id="pd-thumbs"></div>
+        <div class="main-image" id="pd-main-image"></div>
       </div>
       <div>
         <h1 class="pd-title">${escapeHtml(currentProduct.name)}</h1>
