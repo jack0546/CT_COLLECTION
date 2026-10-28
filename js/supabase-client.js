@@ -1,12 +1,30 @@
 /* ------------------------------------------------------------------
-   Supabase browser client
+   Supabase browser client with Cloudflare Cache Worker
 ------------------------------------------------------------------ */
 
 const SUPABASE_URL = 'https://sriduasaznesdcemdtmd.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_2iJDEoJdw8FwC-bQErJFuw_gudotRRq';
 
+// YOUR CLOUDFLARE WORKER URL
+const CACHE_WORKER_URL = 'https://koff-cache.nahsnazzisco.workers.dev';
+
 // Using a new name (supabaseClient) so it doesn't clash with the CDN
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  global: {
+    fetch: (url, options) => {
+      // Only route GET requests through the cache
+      if (options?.method === 'GET' || !options?.method) {
+        // Pass the Supabase URL to the Worker as a query parameter
+        return fetch(`${CACHE_WORKER_URL}/?url=${encodeURIComponent(url)}`, {
+          method: 'GET',
+          headers: options?.headers || {}
+        });
+      }
+      // Allow POST/PUT/DELETE (orders, admin changes) to go directly to Supabase
+      return fetch(url, options);
+    }
+  }
+});
 
 function formatMoney(amount, symbol = '₵') {
   return `${symbol} ${Number(amount).toFixed(2)}`;
