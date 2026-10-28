@@ -28,11 +28,14 @@ function renderGallery() {
   const imgs = imagesForColour(currentColour);
   if (!imgs.length) imgs.push('https://placehold.co/600x600?text=No+Image');
   if (activeImageIdx >= imgs.length) activeImageIdx = 0;
+  
   document.getElementById('pd-main-image').innerHTML =
     `<img src="${imgs[activeImageIdx]}" alt="${escapeHtml(currentProduct.name)} — ${escapeHtml(currentColour)}">`;
+    
   document.getElementById('pd-thumbs').innerHTML = imgs.map((src, i) =>
     `<button class="${i === activeImageIdx ? 'active' : ''}" data-idx="${i}"><img src="${src}" alt=""></button>`
   ).join('');
+  
   document.querySelectorAll('#pd-thumbs button').forEach(btn => {
     btn.addEventListener('click', () => { activeImageIdx = Number(btn.dataset.idx); renderGallery(); });
   });
@@ -43,6 +46,7 @@ function renderColours() {
   document.getElementById('pd-colours').innerHTML = colours.map(c =>
     `<button class="${c.name === currentColour ? 'active' : ''}" data-colour="${escapeHtml(c.name)}" title="${escapeHtml(c.name)}" style="background-color:${c.code}"></button>`
   ).join('');
+  
   document.querySelectorAll('#pd-colours button').forEach(btn => {
     btn.addEventListener('click', () => {
       currentColour = btn.dataset.colour;
@@ -199,7 +203,7 @@ async function mountProduct() {
       <a href="index.html">Home</a> / <a href="shop.html">Shop</a> / <span style="color:#0a0a0a;">${escapeHtml(currentProduct.name)}</span>
     </div>
     <div class="pd-layout">
-      <!-- THUMBS ARE NOW FIRST (LEFT) -->
+      <!-- THUMBS FIRST (LEFT SIDE) -->
       <div class="pd-gallery">
         <div class="pd-thumbs" id="pd-thumbs"></div>
         <div class="main-image" id="pd-main-image"></div>
