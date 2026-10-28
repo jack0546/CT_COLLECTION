@@ -1,7 +1,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 
-/* 1. FIX: Add padding to the body to compensate for the fixed header */
+/* 1. Add padding to the body to compensate for the fixed header */
 body {
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: #0a0a0a;
@@ -26,7 +26,7 @@ input:focus, select:focus, textarea:focus {
 
 /* ---------- Header (Fixed / Floating) ---------- */
 .site-header {
-  position: fixed; /* 2. FIX: Change from sticky to fixed */
+  position: fixed; 
   top: 0; 
   left: 0;
   width: 100%;
@@ -60,7 +60,7 @@ input:focus, select:focus, textarea:focus {
   border-top: 1px solid #e5e5e5; 
   padding: 10px 16px; 
   background: #fff; 
-  position: fixed; /* Fixed so it drops down over content */
+  position: fixed; 
   width: 100%; 
   left: 0; 
   top: 64px; 
@@ -270,7 +270,7 @@ input:focus, select:focus, textarea:focus {
 .shop-toolbar select { width: auto; font-size: 13px; padding: 8px 12px; }
 .shop-toolbar button.btn-outline { padding: 8px 14px; font-size: 13px; border-radius: 6px; }
 
-/* ---------- Product Detail (VERTICAL THUMBS ON LEFT) ---------- */
+/* ---------- FIXED Product Detail (VERTICAL THUMBS ON LEFT) ---------- */
 .pd-layout { display: grid; gap: 32px; padding: 32px 0; }
 @media (min-width: 768px) { .pd-layout { grid-template-columns: 1fr 1fr; gap: 40px; } }
 
@@ -278,18 +278,28 @@ input:focus, select:focus, textarea:focus {
   display: flex; 
   flex-direction: row; 
   gap: 12px; 
-  align-items: flex-start; 
+  align-items: flex-start; /* THE FIX: Prevents stretching to match height */
   width: 100%;
 }
+
 .pd-thumbs { 
   display: flex; 
   flex-direction: column; 
   gap: 10px; 
   width: 72px; 
   flex-shrink: 0; 
-  max-height: 500px; 
+  
+  /* THE FIX: Fixed height forces internal scroll on long thumbnail lists */
+  height: 500px; 
+  max-height: 500px;
   overflow-y: auto; 
+  
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-right: 2px;
 }
+.pd-thumbs::-webkit-scrollbar { display: none; }
+
 .pd-thumbs button { 
   width: 72px; 
   height: 72px; 
@@ -302,6 +312,7 @@ input:focus, select:focus, textarea:focus {
 }
 .pd-thumbs button.active { outline: 2px solid #0a0a0a; outline-offset: 1px; }
 .pd-thumbs img { width: 100%; height: 100%; object-fit: cover; }
+
 .pd-gallery .main-image { 
   flex: 1; 
   aspect-ratio: 1/1; 
@@ -311,6 +322,18 @@ input:focus, select:focus, textarea:focus {
   min-width: 0; 
 }
 .pd-gallery .main-image img { width: 100%; height: 100%; object-fit: cover; }
+
+/* THE FIX: Mobile override */
+@media (max-width: 767px) {
+  .pd-gallery { gap: 8px; }
+  .pd-thumbs { 
+    width: 56px; 
+    height: 280px; 
+    max-height: 280px; 
+    gap: 8px;
+  }
+  .pd-thumbs button { width: 56px; height: 56px; }
+}
 
 /* Product Info */
 .pd-title { font-size: clamp(24px, 4vw, 32px); margin: 0; font-weight: 600; }
