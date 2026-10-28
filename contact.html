@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Contact — Luxe Threads</title>
+  <title>Contact — KOFF BOUTIQUE</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
@@ -38,6 +39,13 @@
       document.getElementById('contact-info').innerHTML =
         items || '<p class="muted">No contact information set yet.</p>';
     })();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW failed', err));
+      });
+    }
   </script>
 </body>
 </html>

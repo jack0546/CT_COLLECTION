@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Track Order — KOFF BOUTIQUE</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/styles.css" />
   <style>
     .tracker-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 30px; max-width: 600px; margin: 0 auto; }
@@ -24,7 +25,6 @@
   <main class="container" style="padding: 40px 16px 80px;">
     <h1 style="text-align: center; margin-bottom: 30px;">Track Your Order</h1>
 
-    <!-- Form to look up order -->
     <div class="tracker-card" id="tracker-form-card">
       <p class="muted" style="margin-bottom: 20px; text-align: center;">Enter your Order Reference and Phone Number to see your order status.</p>
       <form id="tracker-form">
@@ -41,7 +41,6 @@
       <div id="t-error" class="hidden" style="color: #dc2626; text-align: center; margin-top: 15px; font-size: 14px;"></div>
     </div>
 
-    <!-- Results -->
     <div class="tracker-card hidden" id="tracker-result-card">
       <h2 style="margin: 0 0 4px;">Order: <span id="r-ref" style="font-weight: normal; color: #525252;"></span></h2>
       
@@ -99,7 +98,6 @@
       btn.textContent = 'Searching...';
       errEl.classList.add('hidden');
 
-      // SECURE LOOKUP: Call the database function instead of querying the table directly
       const { data, error } = await supabaseClient
         .rpc('get_order_by_reference', { 
           p_reference: ref, 
@@ -109,7 +107,6 @@
       btn.disabled = false;
       btn.textContent = 'Find My Order';
 
-      // Because RPC returns an array, we check if the array is empty or has a row
       const order = data && data.length > 0 ? data[0] : null;
 
       if (error || !order) {
@@ -118,24 +115,21 @@
         return;
       }
 
-      // Show results
       document.getElementById('tracker-form-card').classList.add('hidden');
       document.getElementById('tracker-result-card').classList.remove('hidden');
       
       document.getElementById('r-ref').textContent = order.order_reference;
       document.getElementById('r-total').textContent = `₵ ${Number(order.total_amount).toFixed(2)}`;
 
-      // Render Payment Status
       const payEl = document.getElementById('r-payment');
       if (order.payment_status === 'paid') {
         payEl.textContent = 'Paid ✓';
-        payEl.style.color = '#166534'; // Green
+        payEl.style.color = '#166534';
       } else {
         payEl.textContent = 'Unpaid';
-        payEl.style.color = '#dc2626'; // Red
+        payEl.style.color = '#dc2626';
       }
 
-      // Render items
       const items = order.order_items || [];
       document.getElementById('r-items').innerHTML = items.map(i => `
         <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;">
@@ -144,7 +138,6 @@
         </div>
       `).join('');
 
-      // Render timeline
       const currentStatus = order.status;
       const currentStep = STATUS_MAP[currentStatus];
 
@@ -159,6 +152,13 @@
         });
       }
     });
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW failed', err));
+      });
+    }
   </script>
 </body>
 </html>

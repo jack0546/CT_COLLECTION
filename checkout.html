@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Checkout — Luxe Threads</title>
+  <title>Checkout — KOFF BOUTIQUE</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
@@ -51,5 +52,12 @@
   <script src="js/header.js"></script>
   <script src="js/footer.js"></script>
   <script src="js/checkout.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW failed', err));
+      });
+    }
+  </script>
 </body>
 </html>
