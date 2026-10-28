@@ -1,4 +1,4 @@
-const CACHE_NAME = 'koff-v1';
+const CACHE_NAME = 'great-addesam-v1';
 const urlsToCache = [
   '/',
   '/index.html',

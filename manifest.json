@@ -1,6 +1,6 @@
 {
-  "name": "KOFF BOUTIQUE",
-  "short_name": "KOFF",
+  "name": "Great Addesam",
+  "short_name": "Addesam",
   "description": "Premium fashion crafted for everyday confidence.",
   "start_url": "/index.html",
   "display": "standalone",
@@ -8,14 +8,16 @@
   "theme_color": "#0a0a0a",
   "icons": [
     {
-      "src": "https://sriduasaznesdcemdtmd.supabase.co/storage/v1/object/public/product-images/download%20(7).jpg",
+      "src": "https://sriduasaznesdcemdtmd.supabase.co/storage/v1/object/public/product-images/logo.png",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "https://sriduasaznesdcemdtmd.supabase.co/storage/v1/object/public/product-images/download%20(7).jpg",
+      "src": "https://sriduasaznesdcemdtmd.supabase.co/storage/v1/object/public/product-images/logo.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
