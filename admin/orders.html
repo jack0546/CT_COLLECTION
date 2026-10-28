@@ -28,6 +28,14 @@
     .card { border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.02); background: #fff; }
     .admin-table th { background: transparent; border-bottom: 1px solid #e2e8f0; padding: 14px 16px; font-size: 12px; }
     .admin-table td { padding: 16px; vertical-align: top; }
+
+    /* NEW badge styling */
+    .badge-new {
+      background: #16a34a; color: #fff; font-size: 9px; 
+      padding: 2px 5px; border-radius: 4px; 
+      margin-left: 4px; font-weight: 700; 
+      vertical-align: middle;
+    }
   </style>
 </head>
 <body>
@@ -49,6 +57,7 @@
         <input type="text" id="order-search" placeholder="Search by name, phone, or reference..." />
         <select id="order-status-filter">
           <option value="">All Statuses</option>
+          <option value="today">🆕 New (Today)</option>
           <option value="pending">Pending</option>
           <option value="confirmed">Confirmed</option>
           <option value="processing">Processing</option>
@@ -90,6 +99,20 @@
 
     function fmt(n) { return `₵ ${Number(n).toFixed(2)}`; }
 
+    // Helper to determine if an order is "new" (needs your attention)
+    // Once it's confirmed AND paid, it's no longer new
+    function isOrderNew(o) {
+      const isPaid = o.payment_status === 'paid';
+      const isConfirmed = o.status === 'confirmed' || o.status === 'processing' || o.status === 'shipped' || o.status === 'delivered';
+      
+      // If the order is delivered, cancelled, or fully confirmed & paid, it's not new
+      if (o.status === 'cancelled' || o.status === 'delivered') return false;
+      if (isConfirmed && isPaid) return false;
+      
+      // Otherwise, it's new
+      return true;
+    }
+
     function renderOrders(ordersToRender) {
       const tbody = document.querySelector('#orders-table tbody');
       
@@ -102,11 +125,15 @@
         const items = Array.isArray(o.order_items) ? o.order_items : [];
         const itemCount = items.reduce((s, i) => s + (i.quantity || 0), 0);
         const isPaid = o.payment_status === 'paid';
+        
+        // Use our smart new-order check
+        const showNewBadge = isOrderNew(o);
 
         return `
           <tr>
             <td>
               <strong>${o.order_reference}</strong>
+              ${showNewBadge ? '<span class="badge-new">NEW</span>' : ''}
               <div class="muted" style="font-size:11px; margin-top:4px;">${itemCount} items</div>
             </td>
             <td>
@@ -161,6 +188,8 @@
           else {
             const order = allOrders.find(o => o.id === sel.dataset.orderId);
             if (order) order.status = sel.value;
+            // Re-render the row so the NEW badge disappears/appears instantly
+            applyOrderFilters();
           }
         });
       });
@@ -173,6 +202,8 @@
           else {
             const order = allOrders.find(o => o.id === sel.dataset.paymentId);
             if (order) order.payment_status = sel.value;
+            // Re-render so the NEW badge disappears when paid
+            applyOrderFilters();
           }
         });
       });
@@ -212,7 +243,14 @@
           o.customer_phone.toLowerCase().includes(searchStr)
         );
       }
-      if (statusStr) filtered = filtered.filter(o => o.status === statusStr);
+      
+      // Filter by status
+      if (statusStr === 'today') {
+        const today = new Date().toDateString();
+        filtered = filtered.filter(o => new Date(o.created_at).toDateString() === today);
+      } else if (statusStr) {
+        filtered = filtered.filter(o => o.status === statusStr);
+      }
 
       renderOrders(filtered);
     }
