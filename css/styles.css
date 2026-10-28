@@ -1,12 +1,16 @@
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+
+/* 1. FIX: Add padding to the body to compensate for the fixed header */
 body {
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: #0a0a0a;
   background: #fff;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  padding-top: 64px; /* Matches header height */
 }
+
 img { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; cursor: pointer; border: 0; background: none; }
@@ -20,11 +24,12 @@ input:focus, select:focus, textarea:focus {
 .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
 .muted { color: #737373; font-size: 13px; }
 
-/* ---------- Header (Sticky) ---------- */
+/* ---------- Header (Fixed / Floating) ---------- */
 .site-header {
-  position: -webkit-sticky;
-  position: sticky; 
+  position: fixed; /* 2. FIX: Change from sticky to fixed */
   top: 0; 
+  left: 0;
+  width: 100%;
   z-index: 9999;
   background: #ffffff;
   border-bottom: 1px solid #e5e5e5;
@@ -49,11 +54,13 @@ input:focus, select:focus, textarea:focus {
   display: flex; align-items: center; justify-content: center; padding: 0 5px;
 }
 .menu-toggle { font-size: 24px; padding: 6px; font-weight: bold; }
+
+/* Mobile Menu */
 .nav-mobile { 
   border-top: 1px solid #e5e5e5; 
   padding: 10px 16px; 
   background: #fff; 
-  position: absolute; 
+  position: fixed; /* Fixed so it drops down over content */
   width: 100%; 
   left: 0; 
   top: 64px; 
@@ -115,72 +122,140 @@ input:focus, select:focus, textarea:focus {
 @media (min-width: 640px) { .category-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (min-width: 1024px) { .category-grid { grid-template-columns: repeat(6, 1fr); padding: 0; } }
 
-/* ---------- Product Grid ---------- */
+/* ---------- Product Grid (Responsive) ---------- */
 .product-grid { 
   display: grid; 
-  gap: 16px; 
+  gap: 12px; 
   grid-template-columns: repeat(2, 1fr); 
-  padding: 0 20px;
+  padding: 0 12px;
   max-width: 1200px;
   margin: 0 auto;
 }
-@media (min-width: 768px) { .product-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 1024px) { .product-grid { grid-template-columns: repeat(4, 1fr); padding: 0; } }
+@media (min-width: 640px) { 
+  .product-grid { 
+    gap: 16px;
+    padding: 0 20px;
+    grid-template-columns: repeat(3, 1fr); 
+  } 
+}
+@media (min-width: 1024px) { 
+  .product-grid { 
+    grid-template-columns: repeat(4, 1fr); 
+    padding: 0;
+  } 
+}
 
-/* ---------- NEW SQUARE PRODUCT CARD DESIGN ---------- */
-.product-card { display: flex; flex-direction: column; height: 100%; }
+/* ---------- Product Card Design ---------- */
+.product-card { 
+  display: flex; 
+  flex-direction: column; 
+  height: 100%; 
+  position: relative;
+}
 .product-card .thumb { 
-  aspect-ratio: 1/1; /* SQUARE */
+  aspect-ratio: 1/1; 
   background: #f5f5f5; 
-  border-radius: 12px; 
+  border-radius: 8px; 
   overflow: hidden; 
   position: relative; 
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
-.product-card .thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s; }
-.product-card:hover .thumb img { transform: scale(1.05); }
+.product-card .thumb img { 
+  width: 100%; 
+  height: 100%; 
+  object-fit: cover; 
+  transition: transform .5s; 
+}
+.product-card:hover .thumb img { 
+  transform: scale(1.05); 
+}
 
 /* The Half-Red Half-White Sale Badge */
 .badge-sale { 
   position: absolute; top: 0; left: 0; 
-  display: flex; font-size: 11px; font-weight: 700; overflow: hidden;
-  border-bottom-right-radius: 8px; 
+  display: flex; font-size: 10px; font-weight: 700; overflow: hidden;
+  border-bottom-right-radius: 6px; 
 }
-.badge-sale .icon { background: #dc2626; color: #fff; padding: 3px 6px; }
-.badge-sale .text { background: #fff; color: #dc2626; padding: 3px 6px; border: 1px solid #dc2626; border-left: none; }
+.badge-sale .icon { background: #dc2626; color: #fff; padding: 2px 5px; }
+.badge-sale .text { background: #fff; color: #dc2626; padding: 2px 5px; border: 1px solid #dc2626; border-left: none; }
 
 .badge-oos { 
   position: absolute; inset: 0; 
   background: rgba(0,0,0,.45); color: #fff; 
   display: flex; align-items: center; justify-content: center; 
-  font-size: 13px; font-weight: 500; 
+  font-size: 12px; font-weight: 500; 
 }
 
 /* Product Info */
-.product-title { font-size: 13px; font-weight: 400; margin: 0 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #333; }
-.product-price-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; gap: 4px; }
-.product-price { font-size: 16px; font-weight: 700; color: #0a0a0a; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px; }
-.product-price del { font-size: 11px; color: #a3a3a3; font-weight: 400; }
-.sold-count { font-size: 10px; color: #ea580c; font-weight: 600; display: flex; align-items: center; gap: 2px; }
+.product-title { 
+  font-size: 12px; 
+  font-weight: 500; 
+  margin: 0 0 4px; 
+  color: #333; 
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+}
+@media (min-width: 768px) {
+  .product-title { font-size: 13px; }
+}
+
+.product-price-row { 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  margin-bottom: 2px; 
+  gap: 4px; 
+}
+.product-price { 
+  font-size: 14px; 
+  font-weight: 700; 
+  color: #0a0a0a; 
+  display: flex; 
+  align-items: baseline; 
+  flex-wrap: wrap; 
+  gap: 4px; 
+}
+@media (min-width: 768px) {
+  .product-price { font-size: 16px; }
+}
+
+.product-price del { font-size: 10px; color: #a3a3a3; font-weight: 400; }
+.sold-count { font-size: 9px; color: #ea580c; font-weight: 600; display: flex; align-items: center; gap: 2px; }
 
 /* Cart Icon Button */
 .card-cart-btn {
-  width: 30px; height: 30px; border-radius: 50%; border: 1px solid #d4d4d4;
+  width: 26px; height: 26px; border-radius: 50%; border: 1px solid #d4d4d4;
   display: flex; align-items: center; justify-content: center;
   background: #fff; transition: all 0.2s; flex-shrink: 0;
 }
+@media (min-width: 768px) {
+  .card-cart-btn { width: 30px; height: 30px; }
+}
 .card-cart-btn:hover { border-color: #0a0a0a; background: #f5f5f5; }
-.card-cart-btn svg { width: 16px; height: 16px; }
+.card-cart-btn svg { width: 14px; height: 14px; }
+@media (min-width: 768px) {
+  .card-cart-btn svg { width: 16px; height: 16px; }
+}
 
 /* Almost Sold Out Text */
-.sold-out-text { font-size: 11px; color: #ea580c; font-weight: 500; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
-.sold-out-text span { font-size: 9px; background: #f1f5f9; color: #64748b; border-radius: 50%; width: 12px; height: 12px; display: inline-flex; align-items: center; justify-content: center; }
+.sold-out-text { font-size: 10px; color: #ea580c; font-weight: 500; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+.sold-out-text span { font-size: 8px; background: #f1f5f9; color: #64748b; border-radius: 50%; width: 10px; height: 10px; display: inline-flex; align-items: center; justify-content: center; }
 
 /* Star Ratings */
-.stars-row { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #333; }
-.stars { color: #0a0a0a; letter-spacing: 1px; font-size: 12px; }
-.colour-dots { display: flex; gap: 6px; margin-top: 4px; }
-.colour-dots button { width: 14px; height: 14px; border-radius: 999px; border: 1px solid #d4d4d4; padding: 0; }
+.stars-row { display: flex; align-items: center; gap: 2px; font-size: 10px; color: #333; }
+.stars { color: #0a0a0a; letter-spacing: 1px; font-size: 11px; }
+@media (min-width: 768px) {
+  .stars-row { font-size: 11px; }
+  .stars { font-size: 12px; }
+}
+.colour-dots { display: flex; gap: 4px; margin-top: 4px; }
+.colour-dots button { width: 12px; height: 12px; border-radius: 999px; border: 1px solid #d4d4d4; padding: 0; }
+@media (min-width: 768px) {
+  .colour-dots button { width: 14px; height: 14px; }
+}
 
 /* ---------- Shop Layout ---------- */
 .shop-layout { display: grid; gap: 32px; padding: 32px 0; }
@@ -201,14 +276,14 @@ input:focus, select:focus, textarea:focus {
 
 .pd-gallery { 
   display: flex; 
-  flex-direction: row; /* Thumbs left, image right */
+  flex-direction: row; 
   gap: 12px; 
   align-items: flex-start; 
   width: 100%;
 }
 .pd-thumbs { 
   display: flex; 
-  flex-direction: column; /* Vertical stacking */
+  flex-direction: column; 
   gap: 10px; 
   width: 72px; 
   flex-shrink: 0; 
