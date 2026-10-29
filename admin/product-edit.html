@@ -166,7 +166,10 @@
       $('p-sale-price').value = product.sale_price ?? '';
       $('p-featured').checked = !!product.featured;
 
+      // THE FIX: Use a Set to prevent duplicate sizes
       const colourMap = new Map();
+      const seenSizes = new Set();
+
       for (const v of product.variants || []) {
         if (!colourMap.has(v.colour_name)) {
           colourMap.set(v.colour_name, {
@@ -177,18 +180,38 @@
             sizes: [],
           });
         }
-        colourMap.get(v.colour_name).sizes.push({
-          id: v.id, size: v.size, sku: v.sku || '', price: v.price ?? '', stock_quantity: v.stock_quantity,
-        });
+        
+        // Only add this size if we haven't seen it for this specific colour yet
+        const uniqueKey = `${v.colour_name}__${v.size}`;
+        if (!seenSizes.has(uniqueKey)) {
+          seenSizes.add(uniqueKey);
+          colourMap.get(v.colour_name).sizes.push({
+            id: v.id, 
+            size: v.size, 
+            sku: v.sku || '', 
+            price: v.price ?? '', 
+            stock_quantity: v.stock_quantity,
+          });
+        }
       }
+
+      // Also prevent duplicate images
+      const seenImages = new Set();
       for (const img of product.variant_images || []) {
         if (!colourMap.has(img.colour_name)) {
           colourMap.set(img.colour_name, {
-            colour_name: img.colour_name, colour_code: '#000000',
-            existingImages: [], newFiles: [], sizes: [],
+            colour_name: img.colour_name, 
+            colour_code: '#000000',
+            existingImages: [], 
+            newFiles: [], 
+            sizes: [],
           });
         }
-        colourMap.get(img.colour_name).existingImages.push({ id: img.id, image_url: img.image_url });
+        
+        if (!seenImages.has(img.image_url)) {
+          seenImages.add(img.image_url);
+          colourMap.get(img.colour_name).existingImages.push({ id: img.id, image_url: img.image_url });
+        }
       }
 
       pendingColours = Array.from(colourMap.values());
@@ -371,7 +394,6 @@
         .upload(path, file, { cacheControl: '3600', upsert: false });
       if (error) throw error;
       
-      // FIXED HERE: Changed supabase to supabaseClient
       const { data } = supabaseClient.storage.from('product-images').getPublicUrl(path);
       return data.publicUrl;
     }
