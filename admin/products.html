@@ -5,6 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Products — Admin</title>
   <link rel="stylesheet" href="/css/admin.css" />
+  <style>
+    .products-toolbar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .products-toolbar input {
+      flex: 1;
+      min-width: 250px;
+      padding: 10px 14px;
+      border: 1px solid #d4d4d4;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .products-toolbar select {
+      width: auto;
+      padding: 10px 14px;
+      border: 1px solid #d4d4d4;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #fff;
+    }
+  </style>
 </head>
 <body>
   <div class="admin-shell">
@@ -12,6 +37,19 @@
       <div class="admin-topbar">
         <h1>Products</h1>
         <a href="product-edit.html" class="btn btn-dark">+ New Product</a>
+      </div>
+
+      <!-- NEW: Search and filter toolbar -->
+      <div class="products-toolbar">
+        <input type="text" id="product-search" placeholder="Search by product name or SKU..." />
+        <select id="product-category-filter">
+          <option value="">All Categories</option>
+        </select>
+        <select id="product-status-filter">
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
       </div>
 
       <div class="card">
@@ -42,23 +80,30 @@
   <script src="../js/supabase-client.js"></script>
   <script src="../js/admin-auth.js"></script>
   <script>
-    async function loadProducts() {
-      const { data, error } = await supabaseClient
-        .from('products')
-        .select('*, variant_images(*), categories(name)')
-        .order('created_at', { ascending: false });
+    let allProducts = [];
+    let allCategories = [];
 
+    async function loadCategoriesForFilter() {
+      const { data } = await supabaseClient.from('categories').select('*').order('name');
+      allCategories = data || [];
+      const sel = document.getElementById('product-category-filter');
+      for (const c of allCategories) {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.name;
+        sel.appendChild(opt);
+      }
+    }
+
+    function renderProducts(productsToRender) {
       const tbody = document.querySelector('#products-table tbody');
-      if (error) {
-        tbody.innerHTML = `<tr><td colspan="8" class="muted">Error: ${error.message}</td></tr>`;
-        return;
-      }
-      if (!data?.length) {
-        tbody.innerHTML = '<tr><td colspan="8" class="muted">No products yet. Click "New Product" to add one.</td></tr>';
+      
+      if (!productsToRender?.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="muted">No products found matching your filters.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = data.map(p => {
+      tbody.innerHTML = productsToRender.map(p => {
         const img = p.variant_images?.[0]?.image_url || '';
         return `
           <tr>
@@ -85,6 +130,7 @@
         btn.addEventListener('click', async () => {
           if (!confirm('Delete this product and all its variants/images?')) return;
           const id = btn.dataset.del;
+          await supabaseClient.from('stock_alerts').delete().eq('product_id', id);
           await supabaseClient.from('variant_images').delete().eq('product_id', id);
           await supabaseClient.from('variants').delete().eq('product_id', id);
           await supabaseClient.from('products').delete().eq('id', id);
@@ -93,9 +139,56 @@
       });
     }
 
+    function applyProductFilters() {
+      const searchStr = document.getElementById('product-search').value.toLowerCase().trim();
+      const catFilter = document.getElementById('product-category-filter').value;
+      const statusFilter = document.getElementById('product-status-filter').value;
+
+      let filtered = allProducts;
+
+      // 1. Search filter (by name)
+      if (searchStr) {
+        filtered = filtered.filter(p => p.name.toLowerCase().includes(searchStr));
+      }
+
+      // 2. Category filter
+      if (catFilter) {
+        filtered = filtered.filter(p => p.category_id === catFilter);
+      }
+
+      // 3. Status filter
+      if (statusFilter) {
+        filtered = filtered.filter(p => p.status === statusFilter);
+      }
+
+      renderProducts(filtered);
+    }
+
+    async function loadProducts() {
+      const { data, error } = await supabaseClient
+        .from('products')
+        .select('*, variant_images(*), categories(name)')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        document.querySelector('#products-table tbody').innerHTML = `<tr><td colspan="8" class="muted">Error: ${error.message}</td></tr>`;
+        return;
+      }
+
+      allProducts = data || [];
+      applyProductFilters();
+    }
+
+    // Wire up the filter listeners
+    document.getElementById('product-search').addEventListener('input', applyProductFilters);
+    document.getElementById('product-category-filter').addEventListener('change', applyProductFilters);
+    document.getElementById('product-status-filter').addEventListener('change', applyProductFilters);
+
+    // Boot
     (async () => {
       await requireAdmin();
       await mountAdminShell('products');
+      await loadCategoriesForFilter();
       await loadProducts();
     })();
   </script>

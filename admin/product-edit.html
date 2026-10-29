@@ -440,13 +440,15 @@
           pid = data.id;
         }
 
+        // THE FIX: Delete dependent rows first to avoid 409 Conflict
+        // 1. Delete stock alerts
+        await supabaseClient.from('stock_alerts').delete().eq('product_id', pid);
+        // 2. Delete variant images
+        await supabaseClient.from('variant_images').delete().eq('product_id', pid);
+        // 3. NOW it's safe to delete the variants
         await supabaseClient.from('variants').delete().eq('product_id', pid);
-        for (const c of pendingColours) {
-          if (c._deletedImages?.length) {
-            await supabaseClient.from('variant_images').delete().in('id', c._deletedImages);
-          }
-        }
 
+        // Re-insert everything
         for (const c of pendingColours) {
           for (const file of c.newFiles) {
             const url = await uploadFile(file, pid);
