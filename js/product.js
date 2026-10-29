@@ -59,8 +59,17 @@ function renderColours() {
 }
 
 function renderSizes() {
-  const sizes = sizesForColour(currentColour);
-  document.getElementById('pd-sizes').innerHTML = sizes.map(v => {
+  const allSizes = sizesForColour(currentColour);
+  
+  // THE FIX: Filter out duplicate sizes before rendering
+  const seenSizes = new Set();
+  const uniqueSizes = allSizes.filter(v => {
+    if (seenSizes.has(v.size)) return false;
+    seenSizes.add(v.size);
+    return true;
+  });
+
+  document.getElementById('pd-sizes').innerHTML = uniqueSizes.map(v => {
     const out = v.stock_quantity <= 0;
     return `<button data-id="${v.id}" class="${v.id === currentSizeId ? 'active' : ''}">${escapeHtml(v.size)}${out ? ' (Out of Stock)' : ''}</button>`;
   }).join('');
