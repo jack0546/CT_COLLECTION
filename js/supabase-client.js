@@ -7,11 +7,16 @@ const SUPABASE_ANON_KEY = 'sb_publishable_2iJDEoJdw8FwC-bQErJFuw_gudotRRq';
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- CACHE CONFIGURATION ---
+/* ------------------------------------------------------------------
+   CACHE CONFIGURATION
+------------------------------------------------------------------ */
 let productCache = null;
 let cacheTime = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
+/* ------------------------------------------------------------------
+   HELPER FUNCTIONS
+------------------------------------------------------------------ */
 function formatMoney(amount, symbol = '₵') {
   return `${symbol} ${Number(amount).toFixed(2)}`;
 }
@@ -29,6 +34,10 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+/* ------------------------------------------------------------------
+   DATA FETCHING (with Cache)
+------------------------------------------------------------------ */
 
 async function getStoreSettings() {
   const { data, error } = await supabaseClient
@@ -48,13 +57,15 @@ async function getStoreSettings() {
 }
 
 async function loadProducts(filters = {}) {
-  // 1. If we have a valid cache and NO filters applied, return the cache instantly
-  if (productCache && (Date.now() - cacheTime < CACHE_TTL) && Object.keys(filters).length === 0) {
+  // 1. Check if we have a valid cache (only for the unfiltered full list)
+  const isFiltered = Object.keys(filters).length > 0;
+  
+  if (!isFiltered && productCache && (Date.now() - cacheTime < CACHE_TTL)) {
     console.log('⚡ Using cached products');
     return productCache;
   }
 
-  // 2. Otherwise, fetch from Supabase
+  // 2. Fetch from Supabase
   let q = supabaseClient
     .from('products')
     .select('*, variants(*), variant_images(*), categories(name,slug)')
@@ -67,12 +78,16 @@ async function loadProducts(filters = {}) {
   if (filters.order === 'newest') q = q.order('created_at', { ascending: false });
   
   const { data, error } = await q;
-  if (error) { console.error(error); return []; }
+  if (error) { 
+    console.error(error); 
+    return []; 
+  }
 
-  // 3. Save to cache ONLY if no filters are applied (cache the full list)
-  if (Object.keys(filters).length === 0) {
+  // 3. Save to cache ONLY if it's the full, unfiltered list
+  if (!isFiltered) {
     productCache = data || [];
     cacheTime = Date.now();
+    console.log('💾 Saved products to cache');
   }
 
   return data || [];

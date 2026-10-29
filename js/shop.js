@@ -177,7 +177,8 @@ function applyFilters() {
 }
 
 async function mountShop() {
-  [state.products, state.categories] = await Promise.all([loadProducts(), loadCategories()]);
+  // Pass an empty object to ensure the cache is used
+  [state.products, state.categories] = await Promise.all([loadProducts({}), loadCategories()]);
   populateFilters();
   applyFilters();
 
