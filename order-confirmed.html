@@ -6,6 +6,7 @@
   <title>Order Confirmed — Great Addesam</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     .success-card {
       background: #fff;
@@ -38,12 +39,39 @@
       margin: 20px 0;
       letter-spacing: 1px;
     }
+    
+    /* --- Receipt Printer Animation --- */
+    .printer-container { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px dashed #e5e5e5; }
+    .printer-body { width: 260px; margin: 0 auto; background: #111; border-radius: 12px 12px 0 0; padding: 15px; position: relative; box-shadow: inset 0 5px 10px rgba(255,255,255,0.1); border: 2px solid #333; }
+    .printer-slot { width: 200px; height: 10px; background: #000; margin: 0 auto; border-radius: 5px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.8); border-bottom: 1px solid #444; }
+    .receipt-paper-wrapper { width: 100%; max-width: 320px; margin: 0 auto; overflow: hidden; height: 0; transition: height 1.5s ease-in-out; }
+    .receipt-paper-wrapper.printing { height: 900px; }
+    
+    /* --- Receipt Paper Styling --- */
+    .receipt-paper {
+      width: 100%; background: #fdfdfd; padding: 20px; text-align: left;
+      font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #000;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: 1px solid #eee;
+      border-radius: 0 0 4px 4px; position: relative; overflow: hidden; z-index: 1;
+      box-sizing: border-box;
+    }
+    .receipt-header { text-align: center; margin-bottom: 15px; }
+    .receipt-header h2 { margin: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; }
+    .receipt-header p { margin: 4px 0; font-size: 11px; color: #555; }
+    .receipt-divider { border-top: 1px dashed #000; margin: 10px 0; }
+    .receipt-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .receipt-table th { text-align: left; border-bottom: 1px solid #000; padding-bottom: 4px; }
+    .receipt-table td { padding: 4px 0; vertical-align: top; }
+    .receipt-total-row { font-weight: bold; font-size: 14px; margin-top: 10px; text-align: right; }
+    .receipt-footer { text-align: center; font-size: 10px; margin-top: 20px; color: #555; }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
   <div id="site-header"></div>
 
   <main class="container" style="padding: 20px 16px 80px;">
+    <!-- Success Message -->
     <div class="success-card">
       <div class="success-icon">✓</div>
       <h1 style="margin: 0 0 10px;">Payment Successful!</h1>
@@ -63,6 +91,15 @@
         <a href="shop.html" class="btn btn-light" style="width: 100%; border: 1px solid #0a0a0a;">Continue Shopping</a>
       </div>
     </div>
+
+    <!-- Receipt Section (Automatically Generates) -->
+    <div class="printer-container" id="receipt-section" style="display:none; max-width: 500px; margin: 0 auto; padding-bottom: 40px;">
+      <div class="printer-body"><div class="printer-slot"></div></div>
+      <div class="receipt-paper-wrapper" id="receipt-wrapper">
+        <div class="receipt-paper" id="printable-receipt"></div>
+      </div>
+      <button id="download-pdf-btn" class="btn btn-dark hidden" style="width: 100%; margin-top: 20px;">⬇️ Save as PDF</button>
+    </div>
   </main>
 
   <div id="site-footer"></div>
@@ -74,15 +111,219 @@
   <script src="js/header.js"></script>
   <script src="js/footer.js"></script>
   <script>
-    // Get the order reference from the URL (e.g. ?ref=ORD-12345)
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get('ref');
-    
-    if (ref) {
+    let currentOrderData = null;
+    let currentSettings = null;
+
+    async function loadReceipt() {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref') || sessionStorage.getItem('last_order_ref');
+      
+      if (!ref) {
+        document.getElementById('order-ref').textContent = 'No reference found';
+        return;
+      }
+      
       document.getElementById('order-ref').textContent = ref;
-    } else {
-      document.getElementById('order-ref').textContent = 'No reference found';
+      currentSettings = await getStoreSettings();
+
+      // Fetch the full order from the database
+      const { data, error } = await supabaseClient
+        .from('orders')
+        .select('*')
+        .eq('order_reference', ref)
+        .single();
+
+      if (error || !data) {
+        console.error("Could not load receipt", error);
+        return;
+      }
+
+      currentOrderData = data;
+      
+      // If payment is paid, show the receipt and trigger the animation
+      if (currentOrderData.payment_status === 'paid') {
+        document.getElementById('receipt-section').style.display = 'block';
+        document.getElementById('printable-receipt').innerHTML = buildReceiptHTML();
+        
+        setTimeout(() => {
+          document.getElementById('receipt-wrapper').classList.add('printing');
+          setTimeout(() => {
+            document.getElementById('download-pdf-btn').classList.remove('hidden');
+          }, 1500);
+        }, 500);
+      }
     }
+
+    function buildReceiptHTML() {
+      const order = currentOrderData;
+      const symbol = currentSettings?.currency_symbol || '₵';
+      const date = new Date(order.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+      const itemsHTML = order.order_items.map(item => `
+        <tr>
+          <td>${item.productName}<br><span style="color:#555; font-size:10px;">${item.colourName} / ${item.size}</span></td>
+          <td style="text-align:center;">${item.quantity}</td>
+          <td style="text-align:right;">${symbol} ${Number(item.unitPrice).toFixed(2)}</td>
+          <td style="text-align:right;">${symbol} ${Number(item.unitPrice * item.quantity).toFixed(2)}</td>
+        </tr>
+      `).join('');
+
+      return `
+        <div class="receipt-header">
+          <h2>${currentSettings?.store_name || 'GREAT ADDESAM'}</h2>
+          <p>${currentSettings?.contact_phone || ''}</p>
+          <p>${currentSettings?.contact_email || ''}</p>
+        </div>
+        <div class="receipt-divider"></div>
+        
+        <div style="text-align: center; font-weight: bold; margin-bottom: 10px; font-size: 12px;">STATUS: PAID</div>
+        
+        <div style="font-size: 11px; margin-bottom: 10px;">
+          <div><strong>Order:</strong> ${order.order_reference}</div>
+          <div><strong>Date:</strong> ${date}</div>
+          <div><strong>Customer:</strong> ${order.customer_name}</div>
+          <div><strong>Phone:</strong> ${order.customer_phone}</div>
+          <div><strong>Email:</strong> ${order.customer_email || 'N/A'}</div>
+          <div><strong>Location:</strong> ${order.delivery_location}</div>
+          <div><strong>Address:</strong> ${order.delivery_address}</div>
+          ${order.notes ? `<div><strong>Notes:</strong> ${order.notes}</div>` : ''}
+        </div>
+        
+        <div class="receipt-divider"></div>
+        
+        <table class="receipt-table">
+          <thead>
+            <tr>
+              <th style="width: 45%;">Item</th>
+              <th style="width: 15%; text-align:center;">Qty</th>
+              <th style="width: 20%; text-align:right;">Price</th>
+              <th style="width: 20%; text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>${itemsHTML}</tbody>
+        </table>
+        
+        <div class="receipt-divider"></div>
+        <div class="receipt-total-row">TOTAL: ${symbol} ${Number(order.total_amount).toFixed(2)}</div>
+        <div class="receipt-divider"></div>
+        
+        <div class="receipt-footer">
+          <p>Thank you for shopping with us!</p>
+          <p>This is a computer-generated receipt.</p>
+        </div>
+      `;
+    }
+
+    // Save as PDF (Uses GHS to avoid font errors)
+    document.getElementById('download-pdf-btn').addEventListener('click', () => {
+      const order = currentOrderData;
+      const currencyText = 'GHS';
+      const dateStr = new Date(order.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      
+      const doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: [105, 250] });
+      
+      let y = 15; 
+      const left = 8;
+      const right = 97;
+      const center = 52.5;
+
+      // HEADER
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text(currentSettings?.store_name || 'GREAT ADDESAM', center, y, { align: 'center' });
+      y += 6;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      if (currentSettings?.contact_phone) { doc.text(currentSettings.contact_phone, center, y, { align: 'center' }); y += 4; }
+      if (currentSettings?.contact_email) { doc.text(currentSettings.contact_email, center, y, { align: 'center' }); y += 4; }
+      
+      y += 2;
+      doc.line(10, y, 95, y);
+      y += 6;
+
+      // STATUS
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(22, 163, 74);
+      doc.text('STATUS: PAID', center, y, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
+      y += 6;
+
+      // ORDER DETAILS
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(`Order: ${order.order_reference}`, left, y); y += 5;
+      doc.text(`Date:  ${dateStr}`, left, y); y += 5;
+      doc.text(`Customer: ${order.customer_name}`, left, y); y += 5;
+      doc.text(`Phone: ${order.customer_phone}`, left, y); y += 5;
+      doc.text(`Email: ${order.customer_email || 'N/A'}`, left, y); y += 5;
+      doc.text(`Location: ${order.delivery_location}`, left, y); y += 5;
+      
+      const addressLines = doc.splitTextToSize(`Address: ${order.delivery_address}`, 85);
+      doc.text(addressLines, left, y);
+      y += (addressLines.length * 5);
+
+      if (order.notes) {
+        const notesLines = doc.splitTextToSize(`Notes: ${order.notes}`, 85);
+        doc.text(notesLines, left, y);
+        y += (notesLines.length * 5);
+      }
+      
+      y += 2;
+      doc.line(10, y, 95, y); 
+      y += 6;
+
+      // COLUMN HEADERS
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text('Item', left, y);
+      doc.text('Qty', 65, y);
+      doc.text('Total', right, y, { align: 'right' });
+      y += 4;
+      doc.line(10, y, 95, y); 
+      y += 6;
+
+      // ITEMS
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      order.order_items.forEach(item => {
+        const nameLines = doc.splitTextToSize(item.productName, 50);
+        doc.text(nameLines, left, y);
+        const itemHeight = nameLines.length * 4;
+        
+        doc.setFontSize(7);
+        doc.text(`${item.colourName} / ${item.size}`, left + 2, y + itemHeight);
+        doc.setFontSize(9);
+        
+        const lineTotal = Number(item.unitPrice * item.quantity).toFixed(2);
+        doc.text(`${item.quantity}`, 65, y);
+        doc.text(`${currencyText} ${lineTotal}`, right, y, { align: 'right' });
+        
+        y += itemHeight + 6;
+      });
+
+      y += 2;
+      doc.line(10, y, 95, y); 
+      y += 8;
+
+      // TOTAL
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text(`TOTAL: ${currencyText} ${Number(order.total_amount).toFixed(2)}`, right, y, { align: 'right' });
+      y += 10;
+
+      // FOOTER
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text('Thank you for shopping with us!', center, y, { align: 'center' });
+      y += 5;
+      doc.text('This is a computer-generated receipt.', center, y, { align: 'center' });
+
+      doc.save(`Receipt-${order.order_reference}.pdf`);
+    });
+
+    loadReceipt();
   </script>
 </body>
 </html>

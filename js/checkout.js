@@ -13,7 +13,6 @@ async function mountCheckout() {
 
   const paystackBtn = document.getElementById('paystack-btn');
 
-  // Helper to validate and grab customer data
   function getCustomerData() {
     const customer = {
       name: document.getElementById('c-name').value.trim(),
@@ -31,18 +30,15 @@ async function mountCheckout() {
     return customer;
   }
 
-  // --- PAYSTACK PAYMENT LOGIC ---
   paystackBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     
-    // 1. CHECK IF THE TERMS CHECKBOX IS TICKED
     const termsCheckbox = document.getElementById('c-terms');
     if (!termsCheckbox || !termsCheckbox.checked) {
       alert('Please agree to the Terms & Conditions and Privacy Policy to continue.');
       return;
     }
 
-    // 2. Validate other fields
     const customer = getCustomerData();
     if (!customer) return;
 
@@ -51,7 +47,6 @@ async function mountCheckout() {
 
     const orderReference = 'ORD-' + Date.now();
 
-    // Save order as PENDING first
     try {
       await supabaseClient.from('orders').insert({
         order_reference: orderReference,
@@ -74,15 +69,16 @@ async function mountCheckout() {
       return;
     }
 
-    // Open Paystack Popup
     const paystack = new PaystackPop();
     paystack.newTransaction({
-      key: 'pk_live_6b9968065dc0bd4842c97ffa138e49127c862888', // YOUR LIVE PUBLIC KEY
+      key: 'pk_live_6b9968065dc0bd4842c97ffa138e49127c862888',
       email: customer.email,
-      amount: Math.round(total * 100), // Convert to pesewas
+      amount: Math.round(total * 100),
       reference: orderReference,
       onSuccess: (transaction) => {
         clearCart();
+        // Save the reference so the confirmation page knows what to load
+        sessionStorage.setItem('last_order_ref', orderReference);
         window.location.href = 'order-confirmed.html?ref=' + orderReference;
       },
       onCancel: () => {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Track Order — KOFF BOUTIQUE</title>
+  <title>Track Order — Great Addesam</title>
   <link rel="stylesheet" href="css/styles.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
@@ -22,7 +22,7 @@
     .printer-body { width: 260px; margin: 0 auto; background: #111; border-radius: 12px 12px 0 0; padding: 15px; position: relative; box-shadow: inset 0 5px 10px rgba(255,255,255,0.1); border: 2px solid #333; }
     .printer-slot { width: 200px; height: 10px; background: #000; margin: 0 auto; border-radius: 5px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.8); border-bottom: 1px solid #444; }
     .receipt-paper-wrapper { width: 100%; max-width: 320px; margin: 0 auto; overflow: hidden; height: 0; transition: height 1.5s ease-in-out; }
-    .receipt-paper-wrapper.printing { height: 700px; }
+    .receipt-paper-wrapper.printing { height: 900px; }
     
     .receipt-paper {
       width: 100%; background: #fdfdfd; padding: 20px; text-align: left;
@@ -31,7 +31,6 @@
       border-radius: 0 0 4px 4px; position: relative; overflow: hidden; z-index: 1;
       box-sizing: border-box;
     }
-    
     .receipt-header { text-align: center; margin-bottom: 15px; }
     .receipt-header h2 { margin: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; }
     .receipt-header p { margin: 4px 0; font-size: 11px; color: #555; }
@@ -80,7 +79,7 @@
 
       <div id="receipt-section" class="hidden">
         <div class="printer-container">
-          <button id="generate-receipt-btn" class="btn btn-dark" style="width: 100%; margin-bottom: 20px;">🖨️ Print Receipt</button>
+          <button id="generate-receipt-btn" class="btn btn-dark" style="width: 100%; margin-bottom: 20px;">🖨️ Generate Receipt</button>
           <div class="printer-body"><div class="printer-slot"></div></div>
           <div class="receipt-paper-wrapper" id="receipt-wrapper">
             <div class="receipt-paper" id="printable-receipt"></div>
@@ -119,6 +118,7 @@
 
       currentSettings = await getStoreSettings();
 
+      // NOTE: Ensure your Supabase RPC function returns all columns (including email, address, notes)
       const { data, error } = await supabaseClient.rpc('get_order_by_reference', { p_reference: ref, p_phone: phone });
 
       btn.disabled = false;
@@ -190,18 +190,27 @@
 
       return `
         <div class="receipt-header">
-          <h2>${currentSettings?.store_name || 'KOFF BOUTIQUE'}</h2>
+          <h2>${currentSettings?.store_name || 'GREAT ADDESAM'}</h2>
           <p>${currentSettings?.contact_phone || ''}</p>
           <p>${currentSettings?.contact_email || ''}</p>
         </div>
         <div class="receipt-divider"></div>
+        
         <div style="text-align: center; font-weight: bold; margin-bottom: 10px; font-size: 12px;">STATUS: PAID</div>
+        
         <div style="font-size: 11px; margin-bottom: 10px;">
           <div><strong>Order:</strong> ${order.order_reference}</div>
           <div><strong>Date:</strong> ${date}</div>
           <div><strong>Customer:</strong> ${order.customer_name}</div>
+          <div><strong>Phone:</strong> ${order.customer_phone}</div>
+          <div><strong>Email:</strong> ${order.customer_email || 'N/A'}</div>
+          <div><strong>Location:</strong> ${order.delivery_location}</div>
+          <div><strong>Address:</strong> ${order.delivery_address}</div>
+          ${order.notes ? `<div><strong>Notes:</strong> ${order.notes}</div>` : ''}
         </div>
+        
         <div class="receipt-divider"></div>
+        
         <table class="receipt-table">
           <thead>
             <tr>
@@ -213,9 +222,11 @@
           </thead>
           <tbody>${itemsHTML}</tbody>
         </table>
+        
         <div class="receipt-divider"></div>
         <div class="receipt-total-row">TOTAL: ${symbol} ${Number(order.total_amount).toFixed(2)}</div>
         <div class="receipt-divider"></div>
+        
         <div class="receipt-footer">
           <p>Thank you for shopping with us!</p>
           <p>This is a computer-generated receipt.</p>
@@ -233,14 +244,12 @@
       }, 1500);
     });
 
-    // Save as PDF using jsPDF (Draws text directly, guaranteed to work)
+    // Save as PDF (Draws text directly to avoid character encoding errors)
     document.getElementById('download-pdf-btn').addEventListener('click', () => {
       const order = currentOrderData;
-      // Force the use of 'GHS' instead of the Cedi symbol for PDF compatibility
       const currencyText = 'GHS';
       const dateStr = new Date(order.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
       
-      // 105mm width to fit long product names
       const doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: [105, 250] });
       
       let y = 15; 
@@ -248,10 +257,10 @@
       const right = 97;
       const center = 52.5;
 
-      // --- HEADER ---
+      // HEADER
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
-      doc.text(currentSettings?.store_name || 'KOFF BOUTIQUE', center, y, { align: 'center' });
+      doc.text(currentSettings?.store_name || 'GREAT ADDESAM', center, y, { align: 'center' });
       y += 6;
       
       doc.setFont('helvetica', 'normal');
@@ -260,40 +269,52 @@
       if (currentSettings?.contact_email) { doc.text(currentSettings.contact_email, center, y, { align: 'center' }); y += 4; }
       
       y += 2;
-      doc.line(10, y, 95, y); // Divider
+      doc.line(10, y, 95, y);
       y += 6;
 
-      // --- STATUS (Above order details) ---
+      // STATUS
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10);
-      doc.setTextColor(22, 163, 74); // Green color
+      doc.setTextColor(22, 163, 74);
       doc.text('STATUS: PAID', center, y, { align: 'center' });
-      doc.setTextColor(0, 0, 0); // Reset to black
+      doc.setTextColor(0, 0, 0);
       y += 6;
 
-      // --- ORDER DETAILS ---
+      // ORDER DETAILS
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
-      doc.text(`Order: ${order.order_reference}`, left, y);
-      y += 5;
-      doc.text(`Date:  ${dateStr}`, left, y);
-      y += 5;
-      doc.text(`Customer: ${order.customer_name}`, left, y);
-      y += 6;
-      doc.line(10, y, 95, y); // Divider
+      doc.text(`Order: ${order.order_reference}`, left, y); y += 5;
+      doc.text(`Date:  ${dateStr}`, left, y); y += 5;
+      doc.text(`Customer: ${order.customer_name}`, left, y); y += 5;
+      doc.text(`Phone: ${order.customer_phone}`, left, y); y += 5;
+      doc.text(`Email: ${order.customer_email || 'N/A'}`, left, y); y += 5;
+      doc.text(`Location: ${order.delivery_location}`, left, y); y += 5;
+      
+      const addressLines = doc.splitTextToSize(`Address: ${order.delivery_address}`, 85);
+      doc.text(addressLines, left, y);
+      y += (addressLines.length * 5);
+
+      if (order.notes) {
+        const notesLines = doc.splitTextToSize(`Notes: ${order.notes}`, 85);
+        doc.text(notesLines, left, y);
+        y += (notesLines.length * 5);
+      }
+      
+      y += 2;
+      doc.line(10, y, 95, y); 
       y += 6;
 
-      // --- COLUMN HEADERS ---
+      // COLUMN HEADERS
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
       doc.text('Item', left, y);
       doc.text('Qty', 65, y);
       doc.text('Total', right, y, { align: 'right' });
       y += 4;
-      doc.line(10, y, 95, y); // Divider
+      doc.line(10, y, 95, y); 
       y += 6;
 
-      // --- ITEMS ---
+      // ITEMS
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       order.order_items.forEach(item => {
@@ -307,30 +328,28 @@
         
         const lineTotal = Number(item.unitPrice * item.quantity).toFixed(2);
         doc.text(`${item.quantity}`, 65, y);
-        // Use plain text for currency to avoid encoding issues
         doc.text(`${currencyText} ${lineTotal}`, right, y, { align: 'right' });
         
         y += itemHeight + 6;
       });
 
       y += 2;
-      doc.line(10, y, 95, y); // Divider
+      doc.line(10, y, 95, y); 
       y += 8;
 
-      // --- TOTAL ---
+      // TOTAL
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       doc.text(`TOTAL: ${currencyText} ${Number(order.total_amount).toFixed(2)}`, right, y, { align: 'right' });
       y += 10;
 
-      // --- FOOTER ---
+      // FOOTER
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.text('Thank you for shopping with us!', center, y, { align: 'center' });
       y += 5;
       doc.text('This is a computer-generated receipt.', center, y, { align: 'center' });
 
-      // Save
       doc.save(`Receipt-${order.order_reference}.pdf`);
     });
   </script>
