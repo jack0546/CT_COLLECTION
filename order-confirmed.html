@@ -92,13 +92,16 @@
       </div>
     </div>
 
-    <!-- Receipt Section (Automatically Generates) -->
-    <div class="printer-container" id="receipt-section" style="display:none; max-width: 500px; margin: 0 auto; padding-bottom: 40px;">
-      <div class="printer-body"><div class="printer-slot"></div></div>
+    <!-- Receipt Section (Hidden until clicked) -->
+    <div class="printer-container hidden" id="receipt-section" style="max-width: 500px; margin: 0 auto; padding-bottom: 40px;">
+      <button id="generate-receipt-btn" class="btn btn-dark" style="width: 100%; margin-bottom: 20px;">🖨️ Generate Receipt</button>
+      
+      <div class="printer-body hidden" id="printer-body"><div class="printer-slot"></div></div>
       <div class="receipt-paper-wrapper" id="receipt-wrapper">
         <div class="receipt-paper" id="printable-receipt"></div>
       </div>
-      <button id="download-pdf-btn" class="btn btn-dark hidden" style="width: 100%; margin-top: 20px;">⬇️ Save as PDF</button>
+      
+      <button id="download-pdf-btn" class="btn btn-light hidden" style="width: 100%; margin-top: 20px; border: 1px solid #0a0a0a;">⬇️ Save as PDF</button>
     </div>
   </main>
 
@@ -114,7 +117,7 @@
     let currentOrderData = null;
     let currentSettings = null;
 
-    async function loadReceipt() {
+    async function loadOrderData() {
       const params = new URLSearchParams(window.location.search);
       const ref = params.get('ref') || sessionStorage.getItem('last_order_ref');
       
@@ -126,7 +129,6 @@
       document.getElementById('order-ref').textContent = ref;
       currentSettings = await getStoreSettings();
 
-      // Fetch the full order from the database
       const { data, error } = await supabaseClient
         .from('orders')
         .select('*')
@@ -140,17 +142,9 @@
 
       currentOrderData = data;
       
-      // If payment is paid, show the receipt and trigger the animation
+      // If payment is paid, show the "Generate Receipt" button
       if (currentOrderData.payment_status === 'paid') {
-        document.getElementById('receipt-section').style.display = 'block';
-        document.getElementById('printable-receipt').innerHTML = buildReceiptHTML();
-        
-        setTimeout(() => {
-          document.getElementById('receipt-wrapper').classList.add('printing');
-          setTimeout(() => {
-            document.getElementById('download-pdf-btn').classList.remove('hidden');
-          }, 1500);
-        }, 500);
+        document.getElementById('receipt-section').classList.remove('hidden');
       }
     }
 
@@ -214,7 +208,27 @@
       `;
     }
 
-    // Save as PDF (Uses GHS to avoid font errors)
+    // Generate Button Click Event
+    document.getElementById('generate-receipt-btn').addEventListener('click', () => {
+      if (!currentOrderData) return;
+      
+      // 1. Build the HTML for the receipt
+      document.getElementById('printable-receipt').innerHTML = buildReceiptHTML();
+      
+      // 2. Hide the generate button and show the printer
+      document.getElementById('generate-receipt-btn').style.display = 'none';
+      document.getElementById('printer-body').classList.remove('hidden');
+      
+      // 3. Trigger the animation
+      setTimeout(() => {
+        document.getElementById('receipt-wrapper').classList.add('printing');
+        setTimeout(() => {
+          document.getElementById('download-pdf-btn').classList.remove('hidden');
+        }, 1500);
+      }, 100);
+    });
+
+    // Save as PDF
     document.getElementById('download-pdf-btn').addEventListener('click', () => {
       const order = currentOrderData;
       const currencyText = 'GHS';
@@ -323,7 +337,7 @@
       doc.save(`Receipt-${order.order_reference}.pdf`);
     });
 
-    loadReceipt();
+    loadOrderData();
   </script>
 </body>
 </html>
