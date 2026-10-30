@@ -1,4 +1,4 @@
-const CACHE_NAME = 'great-addesam-v1';
+const CACHE_NAME = 'great-addesam-v2'; // Changed from v1 to v2
 const urlsToCache = [
   '/',
   '/index.html',
@@ -9,6 +9,8 @@ const urlsToCache = [
   '/about.html',
   '/contact.html',
   '/track-order.html',
+  '/privacy.html',        // Added new pages
+  '/terms.html',          // Added new pages
   '/css/styles.css',
   '/js/supabase-client.js',
   '/js/cart.js',
