@@ -5,45 +5,50 @@ async function mountCheckout() {
 
   if (!items.length) {
     summaryEl.innerHTML = `Your cart is empty. <a href="shop.html" style="text-decoration:underline;">Shop now</a>.`;
-    document.querySelector('#checkout-form .btn').disabled = true;
     return;
   }
 
   const total = cartTotal();
   summaryEl.innerHTML = `<strong>${cartCount()} item(s) — Total: ${formatMoney(total, settings.currency_symbol)}</strong>`;
 
-  document.getElementById('checkout-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const btn = document.querySelector('#checkout-form .btn');
-    
+  const paystackBtn = document.getElementById('paystack-btn');
+  const whatsappBtn = document.getElementById('whatsapp-btn');
+
+  // Helper to validate and grab customer data
+  function getCustomerData() {
     const customer = {
       name: document.getElementById('c-name').value.trim(),
+      email: document.getElementById('c-email').value.trim(),
       phone: document.getElementById('c-phone').value.trim(),
       location: document.getElementById('c-location').value.trim(),
       address: document.getElementById('c-address').value.trim(),
       notes: document.getElementById('c-notes').value.trim(),
     };
-    
-    if (!customer.name || !customer.phone || !customer.location || !customer.address) {
-      alert('Please fill in all required fields.');
-      return;
-    }
-    
-    if (!settings.whatsapp_number) {
-      alert('Store WhatsApp number is not configured yet. Please contact the store directly.');
-      return;
-    }
 
-    btn.disabled = true;
-    btn.textContent = 'Processing...';
+    if (!customer.name || !customer.email || !customer.phone || !customer.location || !customer.address) {
+      alert('Please fill in all required fields (Name, Email, Phone, Location, Address).');
+      return null;
+    }
+    return customer;
+  }
+
+  // --- 1. PAYSTACK PAYMENT LOGIC ---
+  paystackBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const customer = getCustomerData();
+    if (!customer) return;
+
+    paystackBtn.disabled = true;
+    paystackBtn.textContent = 'Processing...';
 
     const orderReference = 'ORD-' + Date.now();
-    
-    // 1. Save order to Supabase
+
+    // Save order as PENDING first
     try {
       await supabaseClient.from('orders').insert({
         order_reference: orderReference,
         customer_name: customer.name,
+        customer_email: customer.email,
         customer_phone: customer.phone,
         delivery_location: customer.location,
         delivery_address: customer.address,
@@ -52,27 +57,82 @@ async function mountCheckout() {
         subtotal: total,
         total_amount: total,
         status: 'pending',
+        payment_status: 'unpaid',
+      });
+    } catch (err) {
+      alert('Could not save order. Please try again.');
+      paystackBtn.disabled = false;
+      paystackBtn.textContent = '💳 Pay Now (Secure)';
+      return;
+    }
+
+    // Open Paystack Popup
+    const paystack = new PaystackPop();
+    paystack.newTransaction({
+      key: 'pk_live_6b9968065dc0bd4842c97ffa138e49127c862888', // YOUR LIVE PUBLIC KEY
+      email: customer.email,
+      amount: Math.round(total * 100), // Convert to pesewas
+      reference: orderReference,
+      onSuccess: (transaction) => {
+        clearCart();
+        window.location.href = 'order-confirmed.html?ref=' + orderReference;
+      },
+      onCancel: () => {
+        alert('Payment cancelled. Your order is saved but unpaid.');
+        paystackBtn.disabled = false;
+        paystackBtn.textContent = '💳 Pay Now (Secure)';
+      },
+    });
+  });
+
+  // --- 2. WHATSAPP ORDER LOGIC ---
+  whatsappBtn.addEventListener('click', async () => {
+    const customer = getCustomerData();
+    if (!customer) return;
+
+    if (!settings.whatsapp_number) {
+      alert('Store WhatsApp number is not configured yet.');
+      return;
+    }
+
+    whatsappBtn.disabled = true;
+    whatsappBtn.textContent = 'Opening WhatsApp...';
+
+    const orderReference = 'ORD-' + Date.now();
+
+    // Save order as PENDING (unpaid)
+    try {
+      await supabaseClient.from('orders').insert({
+        order_reference: orderReference,
+        customer_name: customer.name,
+        customer_email: customer.email,
+        customer_phone: customer.phone,
+        delivery_location: customer.location,
+        delivery_address: customer.address,
+        notes: customer.notes,
+        order_items: items,
+        subtotal: total,
+        total_amount: total,
+        status: 'pending',
+        payment_status: 'unpaid',
       });
     } catch (err) {
       console.warn('Order record not saved:', err);
     }
 
-    // 2. Build the message
-    const message = buildOrderMessage({ items, customer, symbol: settings.currency_symbol, orderReference });
+    const message = buildOrderMessage({
+      items,
+      customer,
+      symbol: settings.currency_symbol,
+      orderReference,
+    });
 
-    // 3. Alert the user with their Order Reference
-    alert(`Your Order Reference is: ${orderReference}\n\nWhen WhatsApp opens, please press the green SEND button to confirm your order with us.\n\nYou can use this reference and your phone number to track your order on our website!`);
-
-    // 4. Clear the cart since they are moving to WhatsApp
     clearCart();
-
-    // 5. Open WhatsApp
     openWhatsApp(settings.whatsapp_number, message);
 
-    // 6. Reset button (optional, in case they come back)
     setTimeout(() => {
-      btn.disabled = false;
-      btn.textContent = 'Send Order on WhatsApp';
+      whatsappBtn.disabled = false;
+      whatsappBtn.textContent = '💬 Send Order via WhatsApp';
     }, 2000);
   });
 }

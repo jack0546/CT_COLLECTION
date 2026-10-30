@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Order Confirmed — Great Addesam</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .success-card {
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 12px;
+      padding: 40px 30px;
+      max-width: 500px;
+      margin: 60px auto;
+      text-align: center;
+    }
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: #dcfce7;
+      color: #16a34a;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      margin: 0 auto 20px;
+    }
+    .order-ref {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 16px;
+      font-weight: bold;
+      margin: 20px 0;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container" style="padding: 20px 16px 80px;">
+    <div class="success-card">
+      <div class="success-icon">✓</div>
+      <h1 style="margin: 0 0 10px;">Payment Successful!</h1>
+      <p class="muted" style="margin-bottom: 20px;">
+        Thank you for your order. We have received your payment and your order is being processed.
+      </p>
+
+      <p style="font-size: 13px; color: #737373; margin: 0;">Your Order Reference</p>
+      <div class="order-ref" id="order-ref">Loading...</div>
+
+      <p class="muted" style="font-size: 13px;">
+        Please save this reference. You will need it (along with your phone number) to track your order.
+      </p>
+
+      <div style="margin-top: 30px; display: flex; flex-direction: column; gap: 10px;">
+        <a href="track-order.html" class="btn btn-dark" style="width: 100%;">Track My Order</a>
+        <a href="shop.html" class="btn btn-light" style="width: 100%; border: 1px solid #0a0a0a;">Continue Shopping</a>
+      </div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/footer.js"></script>
+  <script>
+    // Get the order reference from the URL (e.g. ?ref=ORD-12345)
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    
+    if (ref) {
+      document.getElementById('order-ref').textContent = ref;
+    } else {
+      document.getElementById('order-ref').textContent = 'No reference found';
+    }
+  </script>
+</body>
+</html>

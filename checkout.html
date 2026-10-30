@@ -6,6 +6,8 @@
   <title>Checkout — Great Addesam</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/styles.css" />
+  <!-- Paystack Inline Library -->
+  <script src="https://js.paystack.co/v2/inline.js"></script>
 </head>
 <body>
   <div id="site-header"></div>
@@ -17,6 +19,10 @@
       <div class="form-field">
         <label>Full name <span class="req">*</span></label>
         <input id="c-name" required />
+      </div>
+      <div class="form-field">
+        <label>Email address <span class="req">*</span> <span class="muted" style="font-weight:400; font-size:11px;">(For your payment receipt)</span></label>
+        <input id="c-email" type="email" required placeholder="e.g. you@example.com" />
       </div>
       <div class="form-field">
         <label>Phone number <span class="req">*</span></label>
@@ -37,8 +43,13 @@
 
       <div id="checkout-summary" class="muted" style="margin:16px 0;"></div>
 
-      <div class="form-actions">
-        <button class="btn btn-green" type="submit">Send Order on WhatsApp</button>
+      <div class="form-actions" style="display: flex; flex-direction: column; gap: 10px;">
+        <button class="btn btn-green" type="button" id="paystack-btn">
+          💳 Pay Now (Secure)
+        </button>
+        <button class="btn btn-outline" type="button" id="whatsapp-btn">
+          💬 Send Order via WhatsApp
+        </button>
       </div>
     </form>
   </main>
