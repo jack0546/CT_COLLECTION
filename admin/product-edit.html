@@ -24,6 +24,7 @@
       border-top: 1px solid #e5e5e5;
       padding: 14px 20px; margin: 20px -24px -24px;
       display: flex; justify-content: flex-end; gap: 10px;
+      z-index: 100;
     }
     .status-msg {
       padding: 10px 14px; border-radius: 6px; font-size: 13px;
@@ -32,6 +33,16 @@
     .status-msg.show { display: block; }
     .status-msg.ok { background: #dcfce7; color: #166534; }
     .status-msg.err { background: #fee2e2; color: #991b1b; }
+    
+    /* Image thumbnail styles */
+    .image-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .thumb { position: relative; width: 80px; height: 80px; border: 1px solid #e5e5e5; border-radius: 6px; overflow: hidden; }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .thumb .remove-img { 
+      position: absolute; top: 2px; right: 2px; background: #dc2626; color: #fff; 
+      border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; 
+      cursor: pointer; display: flex; align-items: center; justify-content: center; 
+    }
   </style>
 </head>
 <body>
@@ -166,6 +177,7 @@
       const colourMap = new Map();
       const seenSizes = new Set();
 
+      // 1. Load variants first
       for (const v of product.variants || []) {
         if (!colourMap.has(v.colour_name)) {
           colourMap.set(v.colour_name, {
@@ -190,21 +202,24 @@
         }
       }
 
+      // 2. Load images and match to variants (case insensitive)
       const seenImages = new Set();
       for (const img of product.variant_images || []) {
-        if (!colourMap.has(img.colour_name)) {
-          colourMap.set(img.colour_name, {
-            colour_name: img.colour_name, 
-            colour_code: '#000000',
-            existingImages: [], 
-            newFiles: [], 
-            sizes: [],
-          });
-        }
+        let matchedColourName = null;
+        const imgColourClean = (img.colour_name || '').toLowerCase().trim();
         
-        if (!seenImages.has(img.image_url)) {
-          seenImages.add(img.image_url);
-          colourMap.get(img.colour_name).existingImages.push({ id: img.id, image_url: img.image_url });
+        for (const vColour of colourMap.keys()) {
+          if (vColour.toLowerCase().trim() === imgColourClean) {
+            matchedColourName = vColour;
+            break;
+          }
+        }
+
+        if (matchedColourName) {
+          if (!seenImages.has(img.image_url)) {
+            seenImages.add(img.image_url);
+            colourMap.get(matchedColourName).existingImages.push({ id: img.id, image_url: img.image_url });
+          }
         }
       }
 
@@ -225,12 +240,12 @@
       container.innerHTML = pendingColours.map((c, i) => `
         <div class="colour-block" data-colour-index="${i}">
           <div class="colour-block-header">
-            <div class="colour-swatch-preview" style="background:${c.colour_code || '#000000'};"></div>
-            <input type="text" data-field="colour_name" placeholder="Colour name (e.g. Black)" value="${c.colour_name || ''}" />
+            <div class="colour-swatch-preview" style="background:${c.colour_code || '#000000'}; width:24px; height:24px; border-radius:4px;"></div>
+            <input type="text" data-field="colour_name" placeholder="Colour name (e.g. Black)" value="${c.colour_name || ''}" style="flex:1;" />
             <input type="color" data-field="colour_code" value="${c.colour_code || '#000000'}" style="width:50px; padding:2px;" />
             <button type="button" class="btn btn-red btn-sm" data-remove-colour="${i}">Remove</button>
           </div>
-          <div>
+          <div style="margin-top:12px;">
             <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">Images for this colour</label>
             <div class="image-thumbs" data-images="${i}"></div>
             <label class="upload-btn" style="margin-top:8px;">
@@ -238,7 +253,7 @@
               <input type="file" accept="image/*" multiple data-upload="${i}">
             </label>
           </div>
-          <div class="size-rows">
+          <div class="size-rows" style="margin-top:16px;">
             <label style="font-size:13px; font-weight:500; display:block; margin-bottom:6px;">Sizes &amp; stock</label>
             <div data-sizes="${i}"></div>
             <button type="button" class="btn btn-light btn-sm" data-add-size="${i}" style="margin-top:6px;">+ Add Size</button>
@@ -276,7 +291,7 @@
           </div>
         `);
       });
-      wrap.innerHTML = html.join('') || '<p class="muted" style="margin:0;">No images uploaded yet.</p>';
+      wrap.innerHTML = html.join('') || '<p class="muted" style="margin:0; font-size:12px;">No images uploaded yet.</p>';
 
       wrap.querySelectorAll('[data-rm-existing]').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -297,16 +312,16 @@
       const c = pendingColours[colourIdx];
       const wrap = document.querySelector(`[data-sizes="${colourIdx}"]`);
       if (!wrap) return;
-      if (!c.sizes.length) { wrap.innerHTML = '<p class="muted" style="margin:0;">No sizes yet.</p>'; return; }
+      if (!c.sizes.length) { wrap.innerHTML = '<p class="muted" style="margin:0; font-size:12px;">No sizes yet.</p>'; return; }
 
       wrap.innerHTML = c.sizes.map((s, idx) => `
-        <div class="size-row" data-size-row="${idx}">
-          <input type="text" placeholder="Size (S/M/L)" value="${s.size || ''}" data-sf="size" />
-          <input type="text" placeholder="SKU" value="${s.sku || ''}" data-sf="sku" />
-          <input type="number" placeholder="Price override (optional)" value="${s.price ?? ''}" data-sf="price" />
+        <div class="size-row" data-size-row="${idx}" style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+          <input type="text" placeholder="Size (S/M/L)" value="${s.size || ''}" data-sf="size" style="flex:1; min-width:80px;" />
+          <input type="text" placeholder="SKU" value="${s.sku || ''}" data-sf="sku" style="flex:1; min-width:80px;" />
+          <input type="number" placeholder="Price override" value="${s.price ?? ''}" data-sf="price" style="flex:1; min-width:100px;" />
           <div style="display:flex; gap:6px; align-items:center;">
             <input type="number" placeholder="Stock" min="0" value="${s.stock_quantity ?? 0}" data-sf="stock_quantity" style="width:80px;" />
-            <button type="button" class="remove-size" data-rm-size="${idx}">×</button>
+            <button type="button" class="remove-size" data-rm-size="${idx}" style="background:#dc2626; color:#fff; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">×</button>
           </div>
         </div>
       `).join('');
@@ -439,8 +454,7 @@
         // 2. Delete old variants
         await supabaseClient.from('variants').delete().eq('product_id', pid);
 
-        // 3. ONLY delete images that the user explicitly removed
-        // (We don't delete all images, we keep the ones still in existingImages array)
+        // 3. ONLY delete images that were explicitly removed
         const { data: dbImages } = await supabaseClient.from('variant_images').select('id').eq('product_id', pid);
         const keepImageIds = pendingColours.flatMap(c => c.existingImages.map(i => i.id));
         
