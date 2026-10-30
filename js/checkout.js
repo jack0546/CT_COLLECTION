@@ -34,6 +34,15 @@ async function mountCheckout() {
   // --- PAYSTACK PAYMENT LOGIC ---
   paystackBtn.addEventListener('click', async (e) => {
     e.preventDefault();
+    
+    // 1. CHECK IF THE TERMS CHECKBOX IS TICKED
+    const termsCheckbox = document.getElementById('c-terms');
+    if (!termsCheckbox || !termsCheckbox.checked) {
+      alert('Please agree to the Terms & Conditions and Privacy Policy to continue.');
+      return;
+    }
+
+    // 2. Validate other fields
     const customer = getCustomerData();
     if (!customer) return;
 
