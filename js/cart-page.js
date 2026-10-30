@@ -27,11 +27,14 @@ async function mountCartPage() {
         </div>
         <div class="controls">
           <div class="qty-box">
-            <button data-act="dec">−</button>
+            <!-- ADDED type="button" HERE -->
+            <button type="button" data-act="dec">−</button>
             <input type="number" value="${item.quantity}" data-act="qty" min="1">
-            <button data-act="inc">+</button>
+            <!-- ADDED type="button" HERE -->
+            <button type="button" data-act="inc">+</button>
           </div>
-          <button class="remove" data-act="remove">Remove</button>
+          <!-- ADDED type="button" HERE -->
+          <button type="button" class="remove" data-act="remove">Remove</button>
         </div>
       </div>
     </div>
@@ -41,19 +44,27 @@ async function mountCartPage() {
     const key = row.dataset.key;
     const item = getCart().find(i => i.key === key);
     if (!item) return;
-    row.querySelector('[data-act="inc"]').addEventListener('click', () => {
+    
+    // ADDED e.preventDefault() TO ALL CLICKS
+    row.querySelector('[data-act="inc"]').addEventListener('click', (e) => {
+      e.preventDefault();
       updateCartQty(key, item.quantity + 1);
       mountCartPage();
     });
-    row.querySelector('[data-act="dec"]').addEventListener('click', () => {
+    
+    row.querySelector('[data-act="dec"]').addEventListener('click', (e) => {
+      e.preventDefault();
       if (item.quantity > 1) { updateCartQty(key, item.quantity - 1); mountCartPage(); }
     });
-    row.querySelector('[data-act="qty"]').addEventListener('change', e => {
+    
+    row.querySelector('[data-act="qty"]').addEventListener('change', (e) => {
       const q = Math.max(1, parseInt(e.target.value) || 1);
       updateCartQty(key, q);
       mountCartPage();
     });
-    row.querySelector('[data-act="remove"]').addEventListener('click', () => {
+    
+    row.querySelector('[data-act="remove"]').addEventListener('click', (e) => {
+      e.preventDefault();
       removeFromCart(key);
       mountCartPage();
     });
@@ -64,7 +75,7 @@ async function mountCartPage() {
     <h3>Order Summary</h3>
     <div class="row"><span>Items</span><span>${cartCount()}</span></div>
     <div class="row total"><span>Total</span><span>${formatMoney(total, settings.currency_symbol)}</span></div>
-    <a class="btn btn-green" href="checkout.html">Checkout on WhatsApp</a>
+    <a class="btn btn-green" href="checkout.html">Proceed to Checkout</a>
     <a class="btn btn-outline" href="shop.html" style="margin-top:8px;">Continue shopping</a>
   `;
 }

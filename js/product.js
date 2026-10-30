@@ -61,7 +61,7 @@ function renderColours() {
 function renderSizes() {
   const allSizes = sizesForColour(currentColour);
   
-  // THE FIX: Filter out duplicate sizes before rendering
+  // Filter out duplicate sizes before rendering
   const seenSizes = new Set();
   const uniqueSizes = allSizes.filter(v => {
     if (seenSizes.has(v.size)) return false;
@@ -249,7 +249,8 @@ async function mountProduct() {
             <button class="btn btn-outline" id="btn-add" style="flex:1;">Add to Cart</button>
             <button class="btn btn-dark" id="btn-buy" style="flex:1;">Buy Now</button>
           </div>
-          <button class="btn btn-green" id="btn-wa" style="width:100%;">Order on WhatsApp</button>
+          
+          <!-- WhatsApp button removed, only Ask and Share remain -->
           <div style="display:flex; gap:10px; margin-top: 4px;">
             <a class="btn btn-light" id="btn-ask" href="#" target="_blank" rel="noopener" style="flex:1; border:1px solid #e5e5e5; font-size:13px;">💬 Ask a Question</a>
             <button class="btn btn-light" id="btn-share" style="flex:1; border:1px solid #e5e5e5; font-size:13px;">🔗 Share</button>
@@ -292,16 +293,9 @@ async function mountProduct() {
     if (!item) return showToast('Please select a size.');
     const variant = getSelectedVariant();
     if (currentQty > variant.stock_quantity) return showToast('Not enough stock.');
-    clearCart(); // Clear cart to buy only this item
-    addToCart(item);
-    window.location.href = 'checkout.html';
-  });
-
-  document.getElementById('btn-wa').addEventListener('click', () => {
-    const item = buildCartItem();
-    if (!item) return showToast('Please select a size.');
-    const variant = getSelectedVariant();
-    if (currentQty > variant.stock_quantity) return showToast('Not enough stock.');
+    
+    // Clear cart FIRST, then add the item, then go to checkout
+    clearCart(); 
     addToCart(item);
     window.location.href = 'checkout.html';
   });

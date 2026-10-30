@@ -12,7 +12,6 @@ async function mountCheckout() {
   summaryEl.innerHTML = `<strong>${cartCount()} item(s) — Total: ${formatMoney(total, settings.currency_symbol)}</strong>`;
 
   const paystackBtn = document.getElementById('paystack-btn');
-  const whatsappBtn = document.getElementById('whatsapp-btn');
 
   // Helper to validate and grab customer data
   function getCustomerData() {
@@ -32,7 +31,7 @@ async function mountCheckout() {
     return customer;
   }
 
-  // --- 1. PAYSTACK PAYMENT LOGIC ---
+  // --- PAYSTACK PAYMENT LOGIC ---
   paystackBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     const customer = getCustomerData();
@@ -83,57 +82,6 @@ async function mountCheckout() {
         paystackBtn.textContent = '💳 Pay Now (Secure)';
       },
     });
-  });
-
-  // --- 2. WHATSAPP ORDER LOGIC ---
-  whatsappBtn.addEventListener('click', async () => {
-    const customer = getCustomerData();
-    if (!customer) return;
-
-    if (!settings.whatsapp_number) {
-      alert('Store WhatsApp number is not configured yet.');
-      return;
-    }
-
-    whatsappBtn.disabled = true;
-    whatsappBtn.textContent = 'Opening WhatsApp...';
-
-    const orderReference = 'ORD-' + Date.now();
-
-    // Save order as PENDING (unpaid)
-    try {
-      await supabaseClient.from('orders').insert({
-        order_reference: orderReference,
-        customer_name: customer.name,
-        customer_email: customer.email,
-        customer_phone: customer.phone,
-        delivery_location: customer.location,
-        delivery_address: customer.address,
-        notes: customer.notes,
-        order_items: items,
-        subtotal: total,
-        total_amount: total,
-        status: 'pending',
-        payment_status: 'unpaid',
-      });
-    } catch (err) {
-      console.warn('Order record not saved:', err);
-    }
-
-    const message = buildOrderMessage({
-      items,
-      customer,
-      symbol: settings.currency_symbol,
-      orderReference,
-    });
-
-    clearCart();
-    openWhatsApp(settings.whatsapp_number, message);
-
-    setTimeout(() => {
-      whatsappBtn.disabled = false;
-      whatsappBtn.textContent = '💬 Send Order via WhatsApp';
-    }, 2000);
   });
 }
 
