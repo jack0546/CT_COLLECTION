@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Find Us — Great Addesam</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/styles.css" />
+  
+  <!-- Leaflet Map CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Routing Machine -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+  <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+  <style>
+    #map { height: 500px; width: 100%; border-radius: 12px; border: 1px solid #e5e5e5; z-index: 1; }
+    .map-container { padding: 32px 16px 80px; max-width: 900px; margin: 0 auto; }
+    .routing-error { background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; display: none; }
+    .leaflet-routing-container { display: none !important; } /* Hides the bulky text directions */
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container map-container">
+    <h1 style="margin-bottom: 8px;">Find Our Store</h1>
+    <p class="muted" style="margin-bottom: 24px;">Get directions from your current location to our shop.</p>
+
+    <div id="routing-error" class="routing-error">
+      Could not get your location. Please allow location access in your browser settings and try again.
+    </div>
+
+    <div id="map"></div>
+    
+    <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+      <button id="get-directions-btn" class="btn btn-dark">📍 Show Route on Map</button>
+      <a id="open-google-maps" href="#" target="_blank" class="btn btn-green" style="display: none; text-align: center; text-decoration: none; padding: 12px;">🚗 Open in Google Maps for Voice Navigation</a>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/footer.js"></script>
+  <script>
+    // ✅ FIXED: Removed the extra semicolon
+    const SHOP_LAT = 6.073809394680172;  
+    const SHOP_LNG = -0.2702869096208078; 
+    const SHOP_NAME = "Great Addesam Store";
+
+    // 1. Initialize the Map
+    const map = L.map('map').setView([SHOP_LAT, SHOP_LNG], 14);
+
+    // 2. Add OpenStreetMap Tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // 3. Add a Marker for your Shop
+    const shopMarker = L.marker([SHOP_LAT, SHOP_LNG]).addTo(map)
+      .bindPopup(`<b>${SHOP_NAME}</b><br>Your order destination.`).openPopup();
+
+    let routingControl = null;
+
+    // 4. Function to get user location and draw route
+    document.getElementById('get-directions-btn').addEventListener('click', () => {
+      const btn = document.getElementById('get-directions-btn');
+      const errDiv = document.getElementById('routing-error');
+      const googleMapsBtn = document.getElementById('open-google-maps');
+      
+      btn.textContent = 'Getting location...';
+      btn.disabled = true;
+      errDiv.style.display = 'none';
+
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        btn.textContent = '📍 Show Route on Map';
+        btn.disabled = false;
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userLat = position.coords.latitude;
+          const userLng = position.coords.longitude;
+
+          // Remove existing route if there is one
+          if (routingControl) {
+            map.removeControl(routingControl);
+          }
+
+          // Draw the route on the map
+          routingControl = L.Routing.control({
+            waypoints: [
+              L.latLng(userLat, userLng), // Start: Customer
+              L.latLng(SHOP_LAT, SHOP_LNG) // End: Shop
+            ],
+            routeWhileDragging: false,
+            addWaypoints: false,
+            fitSelectedRoutes: true,
+            show: false,
+            lineOptions: {
+              styles: [{ color: '#16a34a', weight: 6 }] // Green line
+            }
+          }).addTo(map);
+
+          // Update the Google Maps Button
+          // This is the best way to give them actual voice navigation on mobile
+          googleMapsBtn.href = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${SHOP_LAT},${SHOP_LNG}&travelmode=driving`;
+          googleMapsBtn.style.display = 'block';
+
+          btn.textContent = '📍 Show Route on Map';
+          btn.disabled = false;
+        },
+        (error) => {
+          console.error("Location error:", error);
+          errDiv.style.display = 'block';
+          btn.textContent = '📍 Show Route on Map';
+          btn.disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
+  </script>
+</body>
+</html>

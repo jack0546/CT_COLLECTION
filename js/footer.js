@@ -20,11 +20,12 @@
             <li><a href="cart.html">Cart</a></li>
           </ul>
         </div>
-        <div>
+               <div>
           <h4>Help</h4>
           <ul>
             <li><a href="contact.html">Contact Us</a></li>
             <li><a href="about.html">About Us</a></li>
+            <li><a href="map.html">Find Us on Map</a></li> <!-- ADDED THIS LINE -->
             <li><a href="privacy.html">Privacy Policy</a></li>
             <li><a href="terms.html">Terms & Conditions</a></li>
             ${settings.delivery_info ? `<li class="muted">${settings.delivery_info}</li>` : ''}

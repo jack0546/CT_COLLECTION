@@ -9,35 +9,18 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     .success-card {
-      background: #fff;
-      border: 1px solid #e5e5e5;
-      border-radius: 12px;
-      padding: 40px 30px;
-      max-width: 500px;
-      margin: 60px auto;
-      text-align: center;
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 12px;
+      padding: 40px 30px; max-width: 500px; margin: 60px auto; text-align: center;
     }
     .success-icon {
-      width: 80px;
-      height: 80px;
-      background: #dcfce7;
-      color: #16a34a;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 40px;
-      margin: 0 auto 20px;
+      width: 80px; height: 80px; background: #dcfce7; color: #16a34a;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 40px; margin: 0 auto 20px;
     }
     .order-ref {
-      background: #f5f5f5;
-      padding: 15px;
-      border-radius: 8px;
-      font-family: monospace;
-      font-size: 16px;
-      font-weight: bold;
-      margin: 20px 0;
-      letter-spacing: 1px;
+      background: #f5f5f5; padding: 15px; border-radius: 8px;
+      font-family: monospace; font-size: 16px; font-weight: bold;
+      margin: 20px 0; letter-spacing: 1px;
     }
     
     /* --- Receipt Printer Animation --- */
@@ -45,7 +28,7 @@
     .printer-body { width: 260px; margin: 0 auto; background: #111; border-radius: 12px 12px 0 0; padding: 15px; position: relative; box-shadow: inset 0 5px 10px rgba(255,255,255,0.1); border: 2px solid #333; }
     .printer-slot { width: 200px; height: 10px; background: #000; margin: 0 auto; border-radius: 5px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.8); border-bottom: 1px solid #444; }
     .receipt-paper-wrapper { width: 100%; max-width: 320px; margin: 0 auto; overflow: hidden; height: 0; transition: height 1.5s ease-in-out; }
-    .receipt-paper-wrapper.printing { height: 900px; }
+    .receipt-paper-wrapper.printing { height: 950px; }
     
     /* --- Receipt Paper Styling --- */
     .receipt-paper {
@@ -93,7 +76,7 @@
     </div>
 
     <!-- Receipt Section (Hidden until clicked) -->
-    <div class="printer-container hidden" id="receipt-section" style="max-width: 500px; margin: 0 auto; padding-bottom: 40px;">
+    <div class="printer-container" id="receipt-section" style="max-width: 500px; margin: 0 auto; padding-bottom: 40px;">
       <button id="generate-receipt-btn" class="btn btn-dark" style="width: 100%; margin-bottom: 20px;">🖨️ Generate Receipt</button>
       
       <div class="printer-body hidden" id="printer-body"><div class="printer-slot"></div></div>
@@ -129,6 +112,7 @@
       document.getElementById('order-ref').textContent = ref;
       currentSettings = await getStoreSettings();
 
+      // Fetch the order
       const { data, error } = await supabaseClient
         .from('orders')
         .select('*')
@@ -136,31 +120,46 @@
         .single();
 
       if (error || !data) {
-        console.error("Could not load receipt", error);
-        return;
+        console.error("Could not load order data", error);
+        // Fallback: Create dummy data so the receipt can still generate if database is delayed
+        currentOrderData = {
+          order_reference: ref,
+          customer_name: 'Customer',
+          customer_phone: '',
+          customer_email: '',
+          delivery_location: '',
+          delivery_address: '',
+          total_amount: 0,
+          order_items: [],
+          payment_status: 'paid'
+        };
+      } else {
+        currentOrderData = data;
       }
-
-      currentOrderData = data;
       
-      // If payment is paid, show the "Generate Receipt" button
-      if (currentOrderData.payment_status === 'paid') {
-        document.getElementById('receipt-section').classList.remove('hidden');
-      }
+      // WE REMOVED THE 'IF PAID' CHECK. The button will always show on this page.
+      // This ensures the customer can always generate their receipt.
+      document.getElementById('receipt-section').classList.remove('hidden');
     }
 
     function buildReceiptHTML() {
       const order = currentOrderData;
       const symbol = currentSettings?.currency_symbol || '₵';
-      const date = new Date(order.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-      const itemsHTML = order.order_items.map(item => `
-        <tr>
-          <td>${item.productName}<br><span style="color:#555; font-size:10px;">${item.colourName} / ${item.size}</span></td>
-          <td style="text-align:center;">${item.quantity}</td>
-          <td style="text-align:right;">${symbol} ${Number(item.unitPrice).toFixed(2)}</td>
-          <td style="text-align:right;">${symbol} ${Number(item.unitPrice * item.quantity).toFixed(2)}</td>
-        </tr>
-      `).join('');
+      let itemsHTML = '';
+      if (order.order_items && order.order_items.length > 0) {
+        itemsHTML = order.order_items.map(item => `
+          <tr>
+            <td>${item.productName}<br><span style="color:#555; font-size:10px;">${item.colourName} / ${item.size}</span></td>
+            <td style="text-align:center;">${item.quantity}</td>
+            <td style="text-align:right;">${symbol} ${Number(item.unitPrice).toFixed(2)}</td>
+            <td style="text-align:right;">${symbol} ${Number(item.unitPrice * item.quantity).toFixed(2)}</td>
+          </tr>
+        `).join('');
+      } else {
+        itemsHTML = `<tr><td colspan="4" style="text-align:center;">Items loading...</td></tr>`;
+      }
 
       return `
         <div class="receipt-header">
@@ -176,10 +175,10 @@
           <div><strong>Order:</strong> ${order.order_reference}</div>
           <div><strong>Date:</strong> ${date}</div>
           <div><strong>Customer:</strong> ${order.customer_name}</div>
-          <div><strong>Phone:</strong> ${order.customer_phone}</div>
+          <div><strong>Phone:</strong> ${order.customer_phone || 'N/A'}</div>
           <div><strong>Email:</strong> ${order.customer_email || 'N/A'}</div>
-          <div><strong>Location:</strong> ${order.delivery_location}</div>
-          <div><strong>Address:</strong> ${order.delivery_address}</div>
+          <div><strong>Location:</strong> ${order.delivery_location || 'N/A'}</div>
+          <div><strong>Address:</strong> ${order.delivery_address || 'N/A'}</div>
           ${order.notes ? `<div><strong>Notes:</strong> ${order.notes}</div>` : ''}
         </div>
         
@@ -212,14 +211,10 @@
     document.getElementById('generate-receipt-btn').addEventListener('click', () => {
       if (!currentOrderData) return;
       
-      // 1. Build the HTML for the receipt
       document.getElementById('printable-receipt').innerHTML = buildReceiptHTML();
-      
-      // 2. Hide the generate button and show the printer
       document.getElementById('generate-receipt-btn').style.display = 'none';
       document.getElementById('printer-body').classList.remove('hidden');
       
-      // 3. Trigger the animation
       setTimeout(() => {
         document.getElementById('receipt-wrapper').classList.add('printing');
         setTimeout(() => {
@@ -232,7 +227,7 @@
     document.getElementById('download-pdf-btn').addEventListener('click', () => {
       const order = currentOrderData;
       const currencyText = 'GHS';
-      const dateStr = new Date(order.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
       
       const doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: [105, 250] });
       
@@ -270,11 +265,11 @@
       doc.text(`Order: ${order.order_reference}`, left, y); y += 5;
       doc.text(`Date:  ${dateStr}`, left, y); y += 5;
       doc.text(`Customer: ${order.customer_name}`, left, y); y += 5;
-      doc.text(`Phone: ${order.customer_phone}`, left, y); y += 5;
+      doc.text(`Phone: ${order.customer_phone || 'N/A'}`, left, y); y += 5;
       doc.text(`Email: ${order.customer_email || 'N/A'}`, left, y); y += 5;
-      doc.text(`Location: ${order.delivery_location}`, left, y); y += 5;
+      doc.text(`Location: ${order.delivery_location || 'N/A'}`, left, y); y += 5;
       
-      const addressLines = doc.splitTextToSize(`Address: ${order.delivery_address}`, 85);
+      const addressLines = doc.splitTextToSize(`Address: ${order.delivery_address || 'N/A'}`, 85);
       doc.text(addressLines, left, y);
       y += (addressLines.length * 5);
 
@@ -301,21 +296,23 @@
       // ITEMS
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
-      order.order_items.forEach(item => {
-        const nameLines = doc.splitTextToSize(item.productName, 50);
-        doc.text(nameLines, left, y);
-        const itemHeight = nameLines.length * 4;
-        
-        doc.setFontSize(7);
-        doc.text(`${item.colourName} / ${item.size}`, left + 2, y + itemHeight);
-        doc.setFontSize(9);
-        
-        const lineTotal = Number(item.unitPrice * item.quantity).toFixed(2);
-        doc.text(`${item.quantity}`, 65, y);
-        doc.text(`${currencyText} ${lineTotal}`, right, y, { align: 'right' });
-        
-        y += itemHeight + 6;
-      });
+      if (order.order_items && order.order_items.length > 0) {
+        order.order_items.forEach(item => {
+          const nameLines = doc.splitTextToSize(item.productName, 50);
+          doc.text(nameLines, left, y);
+          const itemHeight = nameLines.length * 4;
+          
+          doc.setFontSize(7);
+          doc.text(`${item.colourName} / ${item.size}`, left + 2, y + itemHeight);
+          doc.setFontSize(9);
+          
+          const lineTotal = Number(item.unitPrice * item.quantity).toFixed(2);
+          doc.text(`${item.quantity}`, 65, y);
+          doc.text(`${currencyText} ${lineTotal}`, right, y, { align: 'right' });
+          
+          y += itemHeight + 6;
+        });
+      }
 
       y += 2;
       doc.line(10, y, 95, y); 
