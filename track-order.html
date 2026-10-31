@@ -8,29 +8,31 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     .tracker-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 30px; max-width: 600px; margin: 0 auto; }
+    
+    /* Timeline Styles */
     .timeline { display: flex; justify-content: space-between; margin-top: 30px; position: relative; }
     .timeline::before { content: ''; position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: #e5e5e5; z-index: 1; }
     .timeline-step { position: relative; z-index: 2; text-align: center; flex: 1; }
-    .timeline-circle { width: 32px; height: 32px; border-radius: 50%; background: #e5e5e5; color: #fff; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-weight: bold; }
+    .timeline-circle { width: 32px; height: 32px; border-radius: 50%; background: #e5e5e5; color: #fff; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-weight: bold; font-size: 13px; }
     .timeline-step.active .timeline-circle { background: #16a34a; }
     .timeline-step.completed .timeline-circle { background: #0a0a0a; }
-    .timeline-label { font-size: 12px; color: #737373; font-weight: 500; }
+    .timeline-label { font-size: 11px; color: #737373; font-weight: 500; }
     .timeline-step.active .timeline-label { color: #16a34a; font-weight: bold; }
+    
+    /* Cancelled State */
+    .cancelled-banner { background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; width: 100%; border: 1px solid #fecaca; }
+
     .hidden { display: none !important; }
 
+    /* Printer Animation */
     .printer-container { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px dashed #e5e5e5; }
     .printer-body { width: 260px; margin: 0 auto; background: #111; border-radius: 12px 12px 0 0; padding: 15px; position: relative; box-shadow: inset 0 5px 10px rgba(255,255,255,0.1); border: 2px solid #333; }
     .printer-slot { width: 200px; height: 10px; background: #000; margin: 0 auto; border-radius: 5px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.8); border-bottom: 1px solid #444; }
     .receipt-paper-wrapper { width: 100%; max-width: 320px; margin: 0 auto; overflow: hidden; height: 0; transition: height 1.5s ease-in-out; }
-    .receipt-paper-wrapper.printing { height: 900px; }
+    .receipt-paper-wrapper.printing { height: 950px; }
     
-    .receipt-paper {
-      width: 100%; background: #fdfdfd; padding: 20px; text-align: left;
-      font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #000;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: 1px solid #eee;
-      border-radius: 0 0 4px 4px; position: relative; overflow: hidden; z-index: 1;
-      box-sizing: border-box;
-    }
+    /* Receipt Paper Styling */
+    .receipt-paper { width: 100%; background: #fdfdfd; padding: 20px; text-align: left; font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #000; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: 1px solid #eee; border-radius: 0 0 4px 4px; position: relative; overflow: hidden; z-index: 1; box-sizing: border-box; }
     .receipt-header { text-align: center; margin-bottom: 15px; }
     .receipt-header h2 { margin: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; }
     .receipt-header p { margin: 4px 0; font-size: 11px; color: #555; }
@@ -65,10 +67,12 @@
         Payment: <span id="r-payment" style="font-weight: bold;"></span>
       </p>
 
+      <!-- Timeline updated to include Processing -->
       <div class="timeline" id="r-timeline">
         <div class="timeline-step" data-step="pending"><div class="timeline-circle">1</div><div class="timeline-label">Pending</div></div>
         <div class="timeline-step" data-step="confirmed"><div class="timeline-circle">2</div><div class="timeline-label">Confirmed</div></div>
-        <div class="timeline-step" data-step="shipped"><div class="timeline-circle">3</div><div class="timeline-label">Shipped</div></div>
+        <div class="timeline-step" data-step="processing"><div class="timeline-circle">3</div><div class="timeline-label">Processing</div></div>
+        <div class="timeline-step" data-step="shipped"><div class="timeline-circle">4</div><div class="timeline-label">Shipped</div></div>
         <div class="timeline-step" data-step="delivered"><div class="timeline-circle">✓</div><div class="timeline-label">Delivered</div></div>
       </div>
 
@@ -80,7 +84,7 @@
       <div id="receipt-section" class="hidden">
         <div class="printer-container">
           <button id="generate-receipt-btn" class="btn btn-dark" style="width: 100%; margin-bottom: 20px;">🖨️ Generate Receipt</button>
-          <div class="printer-body"><div class="printer-slot"></div></div>
+          <div class="printer-body hidden" id="printer-body"><div class="printer-slot"></div></div>
           <div class="receipt-paper-wrapper" id="receipt-wrapper">
             <div class="receipt-paper" id="printable-receipt"></div>
           </div>
@@ -101,7 +105,16 @@
   <script src="js/header.js"></script>
   <script src="js/footer.js"></script>
   <script>
-    const STATUS_MAP = { pending: 0, confirmed: 1, processing: 1, shipped: 2, delivered: 3, cancelled: -1 };
+    // 1. UPDATED STATUS MAP to match your admin dashboard
+    const STATUS_MAP = { 
+      pending: 0, 
+      confirmed: 1, 
+      processing: 2, 
+      shipped: 3, 
+      delivered: 4, 
+      cancelled: -1 
+    };
+    
     let currentOrderData = null;
     let currentSettings = null;
 
@@ -118,7 +131,6 @@
 
       currentSettings = await getStoreSettings();
 
-      // NOTE: Ensure your Supabase RPC function returns all columns (including email, address, notes)
       const { data, error } = await supabaseClient.rpc('get_order_by_reference', { p_reference: ref, p_phone: phone });
 
       btn.disabled = false;
@@ -162,18 +174,28 @@
       const currentStatus = order.status;
       const currentStep = STATUS_MAP[currentStatus];
 
+      // 2. CANCELLED LOGIC
       if (currentStatus === 'cancelled') {
-        document.getElementById('r-timeline').innerHTML = `<div style="color:#dc2626; font-weight:bold; text-align:center; width:100%;">This order has been cancelled. Please contact us for details.</div>`;
+        document.getElementById('r-timeline').innerHTML = `
+          <div class="cancelled-banner">
+             This order has been cancelled.<br>
+            <span style="font-weight: normal; font-size: 13px;">Please contact us on WhatsApp or call us on normal call for more details.</span>
+          </div>`;
       } else {
         document.querySelectorAll('.timeline-step').forEach(el => {
           const stepIndex = STATUS_MAP[el.dataset.step];
           el.classList.remove('active', 'completed');
-          if (stepIndex < currentStep) el.classList.add('completed');
-          if (stepIndex === currentStep) el.classList.add('active');
+          
+          if (stepIndex < currentStep) {
+            el.classList.add('completed');
+          } else if (stepIndex === currentStep) {
+            el.classList.add('active');
+          }
         });
       }
     });
 
+    // ... (Keep your existing buildReceiptHTML and generateReceipt functions exactly as they are) ...
     function buildReceiptHTML() {
       const order = currentOrderData;
       const symbol = currentSettings?.currency_symbol || '₵';
@@ -195,9 +217,7 @@
           <p>${currentSettings?.contact_email || ''}</p>
         </div>
         <div class="receipt-divider"></div>
-        
         <div style="text-align: center; font-weight: bold; margin-bottom: 10px; font-size: 12px;">STATUS: PAID</div>
-        
         <div style="font-size: 11px; margin-bottom: 10px;">
           <div><strong>Order:</strong> ${order.order_reference}</div>
           <div><strong>Date:</strong> ${date}</div>
@@ -208,9 +228,7 @@
           <div><strong>Address:</strong> ${order.delivery_address}</div>
           ${order.notes ? `<div><strong>Notes:</strong> ${order.notes}</div>` : ''}
         </div>
-        
         <div class="receipt-divider"></div>
-        
         <table class="receipt-table">
           <thead>
             <tr>
@@ -222,11 +240,9 @@
           </thead>
           <tbody>${itemsHTML}</tbody>
         </table>
-        
         <div class="receipt-divider"></div>
         <div class="receipt-total-row">TOTAL: ${symbol} ${Number(order.total_amount).toFixed(2)}</div>
         <div class="receipt-divider"></div>
-        
         <div class="receipt-footer">
           <p>Thank you for shopping with us!</p>
           <p>This is a computer-generated receipt.</p>
@@ -237,52 +253,39 @@
     document.getElementById('generate-receipt-btn').addEventListener('click', () => {
       if (!currentOrderData) return;
       document.getElementById('printable-receipt').innerHTML = buildReceiptHTML();
-      document.getElementById('receipt-wrapper').classList.add('printing');
       document.getElementById('generate-receipt-btn').style.display = 'none';
+      document.getElementById('printer-body').classList.remove('hidden');
       setTimeout(() => {
-        document.getElementById('download-pdf-btn').classList.remove('hidden');
-      }, 1500);
+        document.getElementById('receipt-wrapper').classList.add('printing');
+        setTimeout(() => {
+          document.getElementById('download-pdf-btn').classList.remove('hidden');
+        }, 1500);
+      }, 100);
     });
 
-    // Save as PDF (Draws text directly to avoid character encoding errors)
     document.getElementById('download-pdf-btn').addEventListener('click', () => {
       const order = currentOrderData;
       const currencyText = 'GHS';
       const dateStr = new Date(order.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
       
       const doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: [105, 250] });
-      
       let y = 15; 
       const left = 8;
       const right = 97;
       const center = 52.5;
 
-      // HEADER
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.text(currentSettings?.store_name || 'GREAT ADDESAM', center, y, { align: 'center' });
-      y += 6;
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+      doc.text(currentSettings?.store_name || 'GREAT ADDESAM', center, y, { align: 'center' }); y += 6;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
       if (currentSettings?.contact_phone) { doc.text(currentSettings.contact_phone, center, y, { align: 'center' }); y += 4; }
       if (currentSettings?.contact_email) { doc.text(currentSettings.contact_email, center, y, { align: 'center' }); y += 4; }
-      
-      y += 2;
-      doc.line(10, y, 95, y);
-      y += 6;
+      y += 2; doc.line(10, y, 95, y); y += 6;
 
-      // STATUS
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(22, 163, 74);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(22, 163, 74);
       doc.text('STATUS: PAID', center, y, { align: 'center' });
-      doc.setTextColor(0, 0, 0);
-      y += 6;
+      doc.setTextColor(0, 0, 0); y += 6;
 
-      // ORDER DETAILS
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
       doc.text(`Order: ${order.order_reference}`, left, y); y += 5;
       doc.text(`Date:  ${dateStr}`, left, y); y += 5;
       doc.text(`Customer: ${order.customer_name}`, left, y); y += 5;
@@ -291,63 +294,38 @@
       doc.text(`Location: ${order.delivery_location}`, left, y); y += 5;
       
       const addressLines = doc.splitTextToSize(`Address: ${order.delivery_address}`, 85);
-      doc.text(addressLines, left, y);
-      y += (addressLines.length * 5);
+      doc.text(addressLines, left, y); y += (addressLines.length * 5);
 
       if (order.notes) {
         const notesLines = doc.splitTextToSize(`Notes: ${order.notes}`, 85);
-        doc.text(notesLines, left, y);
-        y += (notesLines.length * 5);
+        doc.text(notesLines, left, y); y += (notesLines.length * 5);
       }
       
-      y += 2;
-      doc.line(10, y, 95, y); 
-      y += 6;
+      y += 2; doc.line(10, y, 95, y); y += 6;
 
-      // COLUMN HEADERS
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.text('Item', left, y);
-      doc.text('Qty', 65, y);
-      doc.text('Total', right, y, { align: 'right' });
-      y += 4;
-      doc.line(10, y, 95, y); 
-      y += 6;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+      doc.text('Item', left, y); doc.text('Qty', 65, y); doc.text('Total', right, y, { align: 'right' });
+      y += 4; doc.line(10, y, 95, y); y += 6;
 
-      // ITEMS
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
       order.order_items.forEach(item => {
         const nameLines = doc.splitTextToSize(item.productName, 50);
         doc.text(nameLines, left, y);
         const itemHeight = nameLines.length * 4;
-        
-        doc.setFontSize(7);
-        doc.text(`${item.colourName} / ${item.size}`, left + 2, y + itemHeight);
-        doc.setFontSize(9);
-        
+        doc.setFontSize(7); doc.text(`${item.colourName} / ${item.size}`, left + 2, y + itemHeight); doc.setFontSize(9);
         const lineTotal = Number(item.unitPrice * item.quantity).toFixed(2);
         doc.text(`${item.quantity}`, 65, y);
         doc.text(`${currencyText} ${lineTotal}`, right, y, { align: 'right' });
-        
         y += itemHeight + 6;
       });
 
-      y += 2;
-      doc.line(10, y, 95, y); 
-      y += 8;
-
-      // TOTAL
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
+      y += 2; doc.line(10, y, 95, y); y += 8;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
       doc.text(`TOTAL: ${currencyText} ${Number(order.total_amount).toFixed(2)}`, right, y, { align: 'right' });
       y += 10;
 
-      // FOOTER
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.text('Thank you for shopping with us!', center, y, { align: 'center' });
-      y += 5;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+      doc.text('Thank you for shopping with us!', center, y, { align: 'center' }); y += 5;
       doc.text('This is a computer-generated receipt.', center, y, { align: 'center' });
 
       doc.save(`Receipt-${order.order_reference}.pdf`);
