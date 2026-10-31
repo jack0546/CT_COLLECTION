@@ -18,7 +18,7 @@
   <style>
     #map { height: 500px; width: 100%; border-radius: 12px; border: 1px solid #e5e5e5; z-index: 1; }
     .map-container { padding: 32px 16px 80px; max-width: 900px; margin: 0 auto; }
-    .routing-error { background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; display: none; }
+    .routing-error { background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; display: none; line-height: 1.5; }
     .leaflet-routing-container { display: none !important; }
   </style>
 </head>
@@ -34,7 +34,7 @@
     <div id="map"></div>
     
     <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
-      <button id="get-directions-btn" class="btn btn-dark">📍 Show Route on Map</button>
+      <button id="get-directions-btn" class="btn btn-dark">📍 Allow Location & Show Route</button>
       <a id="open-google-maps" href="#" target="_blank" class="btn btn-green" style="display: none; text-align: center; text-decoration: none; padding: 12px;">🚗 Open in Google Maps for Voice Navigation</a>
     </div>
   </main>
@@ -65,36 +65,60 @@
       .bindPopup(`<b>${SHOP_NAME}</b><br>Your order destination.`).openPopup();
 
     let routingControl = null;
+    const btn = document.getElementById('get-directions-btn');
+    const errDiv = document.getElementById('routing-error');
 
-    // 4. Get Location Function
-    function getUserLocation() {
-      const btn = document.getElementById('get-directions-btn');
-      const errDiv = document.getElementById('routing-error');
-      const googleMapsBtn = document.getElementById('open-google-maps');
-      
+    // 4. Check permission state on page load
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        if (result.state === 'granted') {
+          btn.textContent = '📍 Show Route on Map';
+        } else if (result.state === 'denied') {
+          btn.textContent = '❌ Location Blocked (Tap for Help)';
+        }
+      });
+    }
+
+    // 5. Main Geolocation Function
+    btn.addEventListener('click', () => {
+      // Check if permission was previously denied
+      if (navigator.permissions) {
+        navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+          if (result.state === 'denied') {
+            errDiv.innerHTML = "❌ <strong>Permission Denied:</strong><br><br>You have blocked location access for this app.<br><br><strong>To fix this:</strong><br>1. Go to your phone's Settings.<br>2. Find 'Apps' or 'Applications' and locate 'Great Addesam'.<br>3. Go to 'Permissions' and allow <strong>Location</strong>.<br>4. Refresh this page.";
+            errDiv.style.display = 'block';
+            return;
+          }
+          requestLocation();
+        });
+      } else {
+        requestLocation();
+      }
+    });
+
+    function requestLocation() {
       btn.textContent = 'Getting location...';
       btn.disabled = true;
       errDiv.style.display = 'none';
 
-      // Check if browser supports geolocation
       if (!navigator.geolocation) {
-        errDiv.innerHTML = "❌ Your device/browser does not support location services. Please use a modern browser like Chrome or Safari.";
-        errDiv.style.display = 'block';
-        btn.textContent = '📍 Show Route on Map';
-        btn.disabled = false;
+        showError("❌ Your device/browser does not support location services.");
         return;
       }
 
-      // Request location
+      // Request GPS
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const userLat = position.coords.latitude;
           const userLng = position.coords.longitude;
-          const accuracy = position.coords.accuracy; // Accuracy in meters
+          const accuracy = position.coords.accuracy;
+
+          btn.textContent = '📍 Show Route on Map';
+          btn.disabled = false;
 
           if (routingControl) map.removeControl(routingControl);
 
-          // Draw route
+          // Draw the route
           routingControl = L.Routing.control({
             waypoints: [
               L.latLng(userLat, userLng), 
@@ -107,40 +131,40 @@
             lineOptions: { styles: [{ color: '#16a34a', weight: 6 }] }
           }).addTo(map);
 
-          // Prepare Google Maps link for voice navigation
+          // Google Maps Link
+          const googleMapsBtn = document.getElementById('open-google-maps');
           googleMapsBtn.href = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${SHOP_LAT},${SHOP_LNG}&travelmode=driving`;
           googleMapsBtn.style.display = 'block';
 
-          // Warn if the location is highly inaccurate (IP-based)
+          // Low accuracy warning
           if (accuracy > 1000) {
-            errDiv.innerHTML = "⚠️ <strong>Low Accuracy:</strong> Your browser is using your Wi-Fi network to estimate your location. For exact GPS directions, click the green 'Open in Google Maps' button below.";
+            errDiv.innerHTML = "⚠️ <strong>Low Accuracy:</strong> Your device is using Wi-Fi to estimate location. Click the green button below for exact GPS navigation.";
             errDiv.style.display = 'block';
           }
-
-          btn.textContent = '📍 Show Route on Map';
-          btn.disabled = false;
         },
         (error) => {
-          console.error("Location error:", error);
+          btn.textContent = '📍 Allow Location & Show Route';
+          btn.disabled = false;
           
           if (error.code === 1) { 
-            errDiv.innerHTML = "❌ Location access denied. Please click the lock icon 🔒 in your browser's address bar, allow Location, and refresh the page.";
+            errDiv.innerHTML = "❌ Location access denied. Please enable it in your device settings.";
           } else if (error.code === 2) { 
-            errDiv.innerHTML = "❌ Your location could not be determined. Please ensure your GPS/Location is turned on.";
-          } else if (error.code === 3) { 
-            errDiv.innerHTML = "❌ Getting your location timed out. Please try again.";
+            errDiv.innerHTML = "❌ Location unavailable. Ensure your phone's GPS is turned on.";
+          } else { 
+            errDiv.innerHTML = "❌ Getting location timed out. Please try again.";
           }
-          
           errDiv.style.display = 'block';
-          btn.textContent = '📍 Show Route on Map';
-          btn.disabled = false;
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     }
 
-    // Attach event listener
-    document.getElementById('get-directions-btn').addEventListener('click', getUserLocation);
+    function showError(msg) {
+      errDiv.innerHTML = msg;
+      errDiv.style.display = 'block';
+      btn.textContent = '📍 Allow Location & Show Route';
+      btn.disabled = false;
+    }
   </script>
 </body>
 </html>
