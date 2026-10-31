@@ -10,6 +10,7 @@
   <!-- Leaflet Map CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
   <!-- Routing Machine -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
   <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
@@ -28,9 +29,7 @@
     <h1 style="margin-bottom: 8px;">Find Our Store</h1>
     <p class="muted" style="margin-bottom: 24px;">Get directions from your current location to our shop.</p>
 
-    <div id="routing-error" class="routing-error">
-      Could not get your location. Please allow location access in your browser settings and try again.
-    </div>
+    <div id="routing-error" class="routing-error"></div>
 
     <div id="map"></div>
     
@@ -49,9 +48,8 @@
   <script src="js/header.js"></script>
   <script src="js/footer.js"></script>
   <script>
-    // ✅ FIXED: Removed the extra semicolon
-    const SHOP_LAT = 6.0739362352944655;  
-    const SHOP_LNG = -0.2700484957563781; 
+    const SHOP_LAT = 6.073809394680172;  
+    const SHOP_LNG = -0.2702869096208078; 
     const SHOP_NAME = "Great Addesam Store";
 
     // 1. Initialize the Map
@@ -63,13 +61,13 @@
     }).addTo(map);
 
     // 3. Add a Marker for your Shop
-    const shopMarker = L.marker([SHOP_LAT, SHOP_LNG]).addTo(map)
+    L.marker([SHOP_LAT, SHOP_LNG]).addTo(map)
       .bindPopup(`<b>${SHOP_NAME}</b><br>Your order destination.`).openPopup();
 
     let routingControl = null;
 
-    // 4. Function to get user location and draw route
-    document.getElementById('get-directions-btn').addEventListener('click', () => {
+    // 4. Get Location Function
+    function getUserLocation() {
       const btn = document.getElementById('get-directions-btn');
       const errDiv = document.getElementById('routing-error');
       const googleMapsBtn = document.getElementById('open-google-maps');
@@ -78,40 +76,37 @@
       btn.disabled = true;
       errDiv.style.display = 'none';
 
+      // Check if browser supports geolocation
       if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser.");
+        errDiv.innerHTML = "❌ Your device/browser does not support location services. Please use a modern browser like Chrome or Safari.";
+        errDiv.style.display = 'block';
         btn.textContent = '📍 Show Route on Map';
         btn.disabled = false;
         return;
       }
 
+      // Request location
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const userLat = position.coords.latitude;
           const userLng = position.coords.longitude;
 
-          // Remove existing route if there is one
-          if (routingControl) {
-            map.removeControl(routingControl);
-          }
+          if (routingControl) map.removeControl(routingControl);
 
-          // Draw the route on the map
+          // Draw route
           routingControl = L.Routing.control({
             waypoints: [
-              L.latLng(userLat, userLng), // Start: Customer
-              L.latLng(SHOP_LAT, SHOP_LNG) // End: Shop
+              L.latLng(userLat, userLng), 
+              L.latLng(SHOP_LAT, SHOP_LNG) 
             ],
             routeWhileDragging: false,
             addWaypoints: false,
             fitSelectedRoutes: true,
             show: false,
-            lineOptions: {
-              styles: [{ color: '#16a34a', weight: 6 }] // Green line
-            }
+            lineOptions: { styles: [{ color: '#16a34a', weight: 6 }] }
           }).addTo(map);
 
-          // Update the Google Maps Button
-          // This is the best way to give them actual voice navigation on mobile
+          // Prepare Google Maps link for voice navigation
           googleMapsBtn.href = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${SHOP_LAT},${SHOP_LNG}&travelmode=driving`;
           googleMapsBtn.style.display = 'block';
 
@@ -120,13 +115,26 @@
         },
         (error) => {
           console.error("Location error:", error);
+          
+          // Provide specific instructions based on the error
+          if (error.code === 1) { // PERMISSION_DENIED
+            errDiv.innerHTML = "❌ Location access denied. Please enable location permissions for this website in your browser/app settings and try again.";
+          } else if (error.code === 2) { // POSITION_UNAVAILABLE
+            errDiv.innerHTML = "❌ Your location could not be determined. Please ensure your GPS/Location is turned on.";
+          } else if (error.code === 3) { // TIMEOUT
+            errDiv.innerHTML = "❌ Getting your location timed out. Please try again.";
+          }
+          
           errDiv.style.display = 'block';
           btn.textContent = '📍 Show Route on Map';
           btn.disabled = false;
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
-    });
+    }
+
+    // Attach event listener
+    document.getElementById('get-directions-btn').addEventListener('click', getUserLocation);
   </script>
 </body>
 </html>
