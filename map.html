@@ -19,7 +19,7 @@
     #map { height: 500px; width: 100%; border-radius: 12px; border: 1px solid #e5e5e5; z-index: 1; }
     .map-container { padding: 32px 16px 80px; max-width: 900px; margin: 0 auto; }
     .routing-error { background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; display: none; }
-    .leaflet-routing-container { display: none !important; } /* Hides the bulky text directions */
+    .leaflet-routing-container { display: none !important; }
   </style>
 </head>
 <body>
@@ -90,6 +90,7 @@
         (position) => {
           const userLat = position.coords.latitude;
           const userLng = position.coords.longitude;
+          const accuracy = position.coords.accuracy; // Accuracy in meters
 
           if (routingControl) map.removeControl(routingControl);
 
@@ -110,18 +111,23 @@
           googleMapsBtn.href = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${SHOP_LAT},${SHOP_LNG}&travelmode=driving`;
           googleMapsBtn.style.display = 'block';
 
+          // Warn if the location is highly inaccurate (IP-based)
+          if (accuracy > 1000) {
+            errDiv.innerHTML = "⚠️ <strong>Low Accuracy:</strong> Your browser is using your Wi-Fi network to estimate your location. For exact GPS directions, click the green 'Open in Google Maps' button below.";
+            errDiv.style.display = 'block';
+          }
+
           btn.textContent = '📍 Show Route on Map';
           btn.disabled = false;
         },
         (error) => {
           console.error("Location error:", error);
           
-          // Provide specific instructions based on the error
-          if (error.code === 1) { // PERMISSION_DENIED
-            errDiv.innerHTML = "❌ Location access denied. Please enable location permissions for this website in your browser/app settings and try again.";
-          } else if (error.code === 2) { // POSITION_UNAVAILABLE
+          if (error.code === 1) { 
+            errDiv.innerHTML = "❌ Location access denied. Please click the lock icon 🔒 in your browser's address bar, allow Location, and refresh the page.";
+          } else if (error.code === 2) { 
             errDiv.innerHTML = "❌ Your location could not be determined. Please ensure your GPS/Location is turned on.";
-          } else if (error.code === 3) { // TIMEOUT
+          } else if (error.code === 3) { 
             errDiv.innerHTML = "❌ Getting your location timed out. Please try again.";
           }
           
