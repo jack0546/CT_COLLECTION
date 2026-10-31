@@ -112,40 +112,50 @@
       document.getElementById('order-ref').textContent = ref;
       currentSettings = await getStoreSettings();
 
-      // Fetch the order
-      const { data, error } = await supabaseClient
-        .from('orders')
-        .select('*')
-        .eq('order_reference', ref)
-        .single();
+      const btn = document.getElementById('generate-receipt-btn');
+      btn.textContent = 'Verifying payment...';
+      btn.disabled = true;
 
-      if (error || !data) {
-        console.error("Could not load order data", error);
-        // Fallback: Create dummy data so the receipt can still generate if database is delayed
-        currentOrderData = {
-          order_reference: ref,
-          customer_name: 'Customer',
-          customer_phone: '',
-          customer_email: '',
-          delivery_location: '',
-          delivery_address: '',
-          total_amount: 0,
-          order_items: [],
-          payment_status: 'paid'
-        };
-      } else {
-        currentOrderData = data;
+      let attempts = 0;
+      // Try 5 times (5 x 1.5s = 7.5 seconds total) to wait for webhook
+      while (attempts < 5) {
+        const { data, error } = await supabaseClient
+          .from('orders')
+          .select('*')
+          .eq('order_reference', ref)
+          .single();
+
+        if (!error && data) {
+          currentOrderData = data;
+          if (data.payment_status === 'paid') {
+            break; // Webhook finished, we have the data!
+          }
+        }
+        
+        attempts++;
+        if (attempts < 5) {
+          await new Promise(r => setTimeout(r, 1500)); 
+        }
       }
-      
-      // WE REMOVED THE 'IF PAID' CHECK. The button will always show on this page.
-      // This ensures the customer can always generate their receipt.
+
+      // If we still don't have data, show error
+      if (!currentOrderData) {
+        btn.textContent = '❌ Order Not Found';
+        btn.disabled = true;
+        alert("We could not load your order data. Please contact support with your reference.");
+        return;
+      }
+
+      // Success! Show the button
+      btn.textContent = '🖨️ Generate Receipt';
+      btn.disabled = false;
       document.getElementById('receipt-section').classList.remove('hidden');
     }
 
     function buildReceiptHTML() {
       const order = currentOrderData;
       const symbol = currentSettings?.currency_symbol || '₵';
-      const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const date = new Date(order.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
       let itemsHTML = '';
       if (order.order_items && order.order_items.length > 0) {
@@ -157,8 +167,6 @@
             <td style="text-align:right;">${symbol} ${Number(item.unitPrice * item.quantity).toFixed(2)}</td>
           </tr>
         `).join('');
-      } else {
-        itemsHTML = `<tr><td colspan="4" style="text-align:center;">Items loading...</td></tr>`;
       }
 
       return `
@@ -207,7 +215,6 @@
       `;
     }
 
-    // Generate Button Click Event
     document.getElementById('generate-receipt-btn').addEventListener('click', () => {
       if (!currentOrderData) return;
       
@@ -223,11 +230,10 @@
       }, 100);
     });
 
-    // Save as PDF
     document.getElementById('download-pdf-btn').addEventListener('click', () => {
       const order = currentOrderData;
       const currencyText = 'GHS';
-      const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      const dateStr = new Date(order.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
       
       const doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: [105, 250] });
       
@@ -236,32 +242,21 @@
       const right = 97;
       const center = 52.5;
 
-      // HEADER
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.text(currentSettings?.store_name || 'GREAT ADDESAM', center, y, { align: 'center' });
-      y += 6;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+      doc.text(currentSettings?.store_name || 'GREAT ADDESAM', center, y, { align: 'center' }); y += 6;
       
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
       if (currentSettings?.contact_phone) { doc.text(currentSettings.contact_phone, center, y, { align: 'center' }); y += 4; }
       if (currentSettings?.contact_email) { doc.text(currentSettings.contact_email, center, y, { align: 'center' }); y += 4; }
       
-      y += 2;
-      doc.line(10, y, 95, y);
-      y += 6;
+      y += 2; doc.line(10, y, 95, y); y += 6;
 
-      // STATUS
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
       doc.setTextColor(22, 163, 74);
       doc.text('STATUS: PAID', center, y, { align: 'center' });
-      doc.setTextColor(0, 0, 0);
-      y += 6;
+      doc.setTextColor(0, 0, 0); y += 6;
 
-      // ORDER DETAILS
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
       doc.text(`Order: ${order.order_reference}`, left, y); y += 5;
       doc.text(`Date:  ${dateStr}`, left, y); y += 5;
       doc.text(`Customer: ${order.customer_name}`, left, y); y += 5;
@@ -270,41 +265,27 @@
       doc.text(`Location: ${order.delivery_location || 'N/A'}`, left, y); y += 5;
       
       const addressLines = doc.splitTextToSize(`Address: ${order.delivery_address || 'N/A'}`, 85);
-      doc.text(addressLines, left, y);
-      y += (addressLines.length * 5);
+      doc.text(addressLines, left, y); y += (addressLines.length * 5);
 
       if (order.notes) {
         const notesLines = doc.splitTextToSize(`Notes: ${order.notes}`, 85);
-        doc.text(notesLines, left, y);
-        y += (notesLines.length * 5);
+        doc.text(notesLines, left, y); y += (notesLines.length * 5);
       }
       
-      y += 2;
-      doc.line(10, y, 95, y); 
-      y += 6;
+      y += 2; doc.line(10, y, 95, y); y += 6;
 
-      // COLUMN HEADERS
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.text('Item', left, y);
-      doc.text('Qty', 65, y);
-      doc.text('Total', right, y, { align: 'right' });
-      y += 4;
-      doc.line(10, y, 95, y); 
-      y += 6;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+      doc.text('Item', left, y); doc.text('Qty', 65, y); doc.text('Total', right, y, { align: 'right' });
+      y += 4; doc.line(10, y, 95, y); y += 6;
 
-      // ITEMS
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
       if (order.order_items && order.order_items.length > 0) {
         order.order_items.forEach(item => {
           const nameLines = doc.splitTextToSize(item.productName, 50);
           doc.text(nameLines, left, y);
           const itemHeight = nameLines.length * 4;
           
-          doc.setFontSize(7);
-          doc.text(`${item.colourName} / ${item.size}`, left + 2, y + itemHeight);
-          doc.setFontSize(9);
+          doc.setFontSize(7); doc.text(`${item.colourName} / ${item.size}`, left + 2, y + itemHeight); doc.setFontSize(9);
           
           const lineTotal = Number(item.unitPrice * item.quantity).toFixed(2);
           doc.text(`${item.quantity}`, 65, y);
@@ -314,21 +295,14 @@
         });
       }
 
-      y += 2;
-      doc.line(10, y, 95, y); 
-      y += 8;
+      y += 2; doc.line(10, y, 95, y); y += 8;
 
-      // TOTAL
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
       doc.text(`TOTAL: ${currencyText} ${Number(order.total_amount).toFixed(2)}`, right, y, { align: 'right' });
       y += 10;
 
-      // FOOTER
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.text('Thank you for shopping with us!', center, y, { align: 'center' });
-      y += 5;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+      doc.text('Thank you for shopping with us!', center, y, { align: 'center' }); y += 5;
       doc.text('This is a computer-generated receipt.', center, y, { align: 'center' });
 
       doc.save(`Receipt-${order.order_reference}.pdf`);
