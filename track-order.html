@@ -245,7 +245,7 @@
         <div class="receipt-divider"></div>
         <div class="receipt-footer">
           <p>Thank you for shopping with us!</p>
-          <p>This is a computer-generated receipt.</p>
+          <p>This is geerated by Great Addesam .</p>
         </div>
       `;
     }
@@ -326,7 +326,7 @@
 
       doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
       doc.text('Thank you for shopping with us!', center, y, { align: 'center' }); y += 5;
-      doc.text('This is a computer-generated receipt.', center, y, { align: 'center' });
+      doc.text('This is geerated by Great Addesam .', center, y, { align: 'center' });
 
       doc.save(`Receipt-${order.order_reference}.pdf`);
     });
