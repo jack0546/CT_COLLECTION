@@ -8,6 +8,20 @@
   const authLinkText = session ? 'My Account' : 'Login';
   const authLinkUrl = session ? 'account.html' : 'login.html';
 
+  // Get the current page filename (e.g., "index.html", "shop.html")
+  const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+
+  // Helper function to check if a link is active
+  function isActive(page) {
+    if (page === 'shop.html' && (currentPath === 'shop.html' || currentPath === 'product.html')) {
+      return 'active-link';
+    }
+    if (page === 'account.html' && (currentPath === 'account.html' || currentPath === 'login.html' || currentPath === 'register.html')) {
+      return 'active-link';
+    }
+    return currentPath === page ? 'active-link' : '';
+  }
+
   // Inject Custom CSS for the Header
   const style = document.createElement('style');
   style.innerHTML = `
@@ -56,6 +70,22 @@
       color: #16a34a;
       transform: translateY(-1px);
     }
+    
+    /* ACTIVE LINK STYLING */
+    .nav-desktop a.active-link {
+      color: #16a34a;
+      font-weight: 700;
+    }
+    .nav-desktop a.active-link::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      bottom: -4px;
+      left: 0;
+      background-color: #16a34a;
+    }
+    
     .nav-desktop a::after {
       content: '';
       position: absolute;
@@ -69,6 +99,7 @@
     .nav-desktop a:hover::after {
       width: 100%;
     }
+    
     .header-search {
       display: flex;
       align-items: center;
@@ -153,6 +184,10 @@
       border-bottom: 1px solid #f5f5f5;
       font-weight: 500;
     }
+    .nav-mobile a.active-link {
+      color: #16a34a;
+      font-weight: 700;
+    }
     
     @media (max-width: 900px) {
       .nav-desktop, .header-search { display: none; }
@@ -172,13 +207,13 @@
         </a>
         
         <nav class="nav-desktop">
-          <a href="index.html">Home</a>
-          <a href="shop.html">Shop</a>
-          <a href="shop.html?view=categories">Categories</a>
-          <a href="about.html">About Us</a>
-          <a href="track-order.html">Track Order</a>
-          <a href="contact.html">Contact</a>
-          <a href="${authLinkUrl}" style="font-weight: 700;">${authLinkText}</a>
+          <a href="index.html" class="${isActive('index.html')}">Home</a>
+          <a href="shop.html" class="${isActive('shop.html')}">Shop</a>
+          <a href="shop.html?view=categories" class="${isActive('categories')}">Categories</a>
+          <a href="about.html" class="${isActive('about.html')}">About Us</a>
+          <a href="track-order.html" class="${isActive('track-order.html')}">Track Order</a>
+          <a href="contact.html" class="${isActive('contact.html')}">Contact</a>
+          <a href="${authLinkUrl}" class="${isActive('account.html')}" style="font-weight: 700;">${authLinkText}</a>
         </nav>
         
         <!-- Live Search Dropdown -->
@@ -200,13 +235,13 @@
       </div>
       
       <div class="nav-mobile" id="mobile-nav">
-        <a href="index.html">Home</a>
-        <a href="shop.html">Shop</a>
-        <a href="shop.html?view=categories">Categories</a>
-        <a href="about.html">About Us</a>
-        <a href="track-order.html">Track Order</a>
-        <a href="contact.html">Contact</a>
-        <a href="${authLinkUrl}" style="font-weight: 700;">${authLinkText}</a>
+        <a href="index.html" class="${isActive('index.html')}">Home</a>
+        <a href="shop.html" class="${isActive('shop.html')}">Shop</a>
+        <a href="shop.html?view=categories" class="${isActive('categories')}">Categories</a>
+        <a href="about.html" class="${isActive('about.html')}">About Us</a>
+        <a href="track-order.html" class="${isActive('track-order.html')}">Track Order</a>
+        <a href="contact.html" class="${isActive('contact.html')}">Contact</a>
+        <a href="${authLinkUrl}" class="${isActive('account.html')}" style="font-weight: 700;">${authLinkText}</a>
       </div>
     </header>
   `;
