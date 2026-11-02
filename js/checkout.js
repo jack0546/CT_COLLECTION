@@ -12,22 +12,66 @@ async function mountCheckout() {
   summaryEl.innerHTML = `<strong>${cartCount()} item(s) — Total: ${formatMoney(total, settings.currency_symbol)}</strong>`;
 
   const paystackBtn = document.getElementById('paystack-btn');
+  let currentUser = null;
+  let userProfile = null;
+
+  // 1. CHECK IF USER IS LOGGED IN
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  
+  if (user) {
+    currentUser = user;
+    // Fetch their saved profile details
+    const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', user.id).single();
+    
+    if (profile) {
+      userProfile = profile;
+      // Hide the form fields, show the summary
+      document.getElementById('guest-form-fields').style.display = 'none';
+      document.getElementById('logged-in-info').style.display = 'block';
+      
+      // Format the address for display
+      const displayAddress = [
+        profile.region,
+        profile.city,
+        profile.suburb,
+        profile.street_name,
+        profile.landmark
+      ].filter(Boolean).join(' - ');
+
+      document.getElementById('display-name').textContent = `${profile.first_name} ${profile.last_name}`;
+      document.getElementById('display-phone').textContent = profile.phone;
+      document.getElementById('display-address').textContent = displayAddress;
+    }
+  } else {
+    // Not logged in? Force them to login or register
+    alert('Please log in or create an account to complete your order.');
+    window.location.href = 'login.html?redirect=checkout.html';
+    return;
+  }
 
   function getCustomerData() {
-    const customer = {
-      name: document.getElementById('c-name').value.trim(),
-      email: document.getElementById('c-email').value.trim(),
-      phone: document.getElementById('c-phone').value.trim(),
-      location: document.getElementById('c-location').value.trim(),
-      address: document.getElementById('c-address').value.trim(),
-      notes: document.getElementById('c-notes').value.trim(),
-    };
+    if (currentUser && userProfile) {
+      // Build the address EXACTLY as requested: Region - City - Area - Street - Landmark
+      const formattedAddress = [
+        userProfile.region,
+        userProfile.city,
+        userProfile.suburb,
+        userProfile.street_name,
+        userProfile.landmark
+      ].filter(Boolean).join(' - ');
 
-    if (!customer.name || !customer.email || !customer.phone || !customer.location || !customer.address) {
-      alert('Please fill in all required fields (Name, Email, Phone, Location, Address).');
+      return {
+        name: `${userProfile.first_name} ${userProfile.last_name}`,
+        email: userProfile.email,
+        phone: userProfile.phone,
+        location: `${userProfile.city}, ${userProfile.region}`,
+        address: formattedAddress, // The full formatted string
+        notes: document.getElementById('c-notes').value.trim() || '',
+        user_id: currentUser.id
+      };
+    } else {
       return null;
     }
-    return customer;
   }
 
   paystackBtn.addEventListener('click', async (e) => {
@@ -61,6 +105,7 @@ async function mountCheckout() {
         total_amount: total,
         status: 'pending',
         payment_status: 'unpaid',
+        user_id: customer.user_id 
       });
     } catch (err) {
       alert('Could not save order. Please try again.');
@@ -77,7 +122,6 @@ async function mountCheckout() {
       reference: orderReference,
       onSuccess: (transaction) => {
         clearCart();
-        // Save the reference so the confirmation page knows what to load
         sessionStorage.setItem('last_order_ref', orderReference);
         window.location.href = 'order-confirmed.html?ref=' + orderReference;
       },

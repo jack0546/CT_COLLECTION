@@ -6,7 +6,6 @@
   <title>Checkout — Great Addesam</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/styles.css" />
-  <!-- Paystack Inline Library -->
   <script src="https://js.paystack.co/v2/inline.js"></script>
 </head>
 <body>
@@ -15,33 +14,46 @@
   <main class="container" style="padding:32px 16px 80px;">
     <h1 style="margin:0 0 20px;">Checkout</h1>
 
+    <!-- Shown if the user is LOGGED IN -->
+    <div id="logged-in-info" class="form-card" style="display:none; background:#f0fdf4; border-color:#bbf7d0; margin-bottom:20px;">
+      <h3 style="margin-top:0; color:#166534;">Delivery Details Saved</h3>
+      <p style="margin:5px 0;"><strong>Name:</strong> <span id="display-name"></span></p>
+      <p style="margin:5px 0;"><strong>Phone:</strong> <span id="display-phone"></span></p>
+      <p style="margin:5px 0;"><strong>Address:</strong> <span id="display-address" style="line-height: 1.5;"></span></p>
+      <p class="muted" style="font-size:12px; margin-top:10px;">If you need to change these details, please update them in your <a href="account.html" style="text-decoration:underline;">Account Profile</a>.</p>
+    </div>
+
     <form class="form-card" id="checkout-form" novalidate>
-      <div class="form-field">
-        <label>Full name <span class="req">*</span></label>
-        <input id="c-name" required />
+      
+      <!-- Hidden if the user is LOGGED IN -->
+      <div id="guest-form-fields">
+        <div class="form-field">
+          <label>Full name <span class="req">*</span></label>
+          <input id="c-name" required />
+        </div>
+        <div class="form-field">
+          <label>Email address <span class="req">*</span></label>
+          <input id="c-email" type="email" required placeholder="e.g. you@example.com" />
+        </div>
+        <div class="form-field">
+          <label>Phone number <span class="req">*</span></label>
+          <input id="c-phone" type="tel" required placeholder="e.g. 0240000000" />
+        </div>
+        <div class="form-field">
+          <label>Delivery location / city <span class="req">*</span></label>
+          <input id="c-location" required />
+        </div>
+        <div class="form-field">
+          <label>Delivery address / landmark <span class="req">*</span></label>
+          <input id="c-address" required />
+        </div>
       </div>
+
       <div class="form-field">
-        <label>Email address <span class="req">*</span> <span class="muted" style="font-weight:400; font-size:11px;">(For your payment receipt)</span></label>
-        <input id="c-email" type="email" required placeholder="e.g. you@example.com" />
-      </div>
-      <div class="form-field">
-        <label>Phone number <span class="req">*</span></label>
-        <input id="c-phone" type="tel" required placeholder="e.g. 0240000000" />
-      </div>
-      <div class="form-field">
-        <label>Delivery location / city <span class="req">*</span></label>
-        <input id="c-location" required />
-      </div>
-      <div class="form-field">
-        <label>Delivery address <span class="req">*</span></label>
-        <input id="c-address" required />
-      </div>
-      <div class="form-field">
-        <label>Additional instructions</label>
+        <label>Additional instructions (Optional)</label>
         <textarea id="c-notes" rows="3"></textarea>
       </div>
 
-      <!-- Privacy & Terms Checkbox -->
       <div class="form-field" style="display: flex; gap: 8px; align-items: flex-start; margin-top: 20px;">
         <input type="checkbox" id="c-terms" required style="margin-top: 4px; width: auto;" />
         <label for="c-terms" style="font-weight: normal; font-size: 13px; color: #555; line-height: 1.4;">

@@ -3,6 +3,11 @@
   const el = document.getElementById('site-header');
   if (!el) return;
 
+  // Check login status to change the link text
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const authLinkText = session ? 'My Account' : 'Login';
+  const authLinkUrl = session ? 'account.html' : 'login.html';
+
   el.innerHTML = `
     <header class="site-header">
       <div class="header-inner">
@@ -18,6 +23,7 @@
           <a href="about.html">About Us</a>
           <a href="track-order.html">Track Order</a>
           <a href="contact.html">Contact</a>
+          <a href="${authLinkUrl}" style="font-weight: bold;">${authLinkText}</a> <!-- NEW LINK -->
         </nav>
         
         <!-- Live Search Dropdown -->
@@ -43,6 +49,7 @@
         <a href="about.html">About Us</a>
         <a href="track-order.html">Track Order</a>
         <a href="contact.html">Contact</a>
+        <a href="${authLinkUrl}" style="font-weight: bold;">${authLinkText}</a> <!-- NEW LINK -->
       </div>
     </header>
   `;
@@ -102,6 +109,4 @@
       resultsBox.style.display = 'none';
     }
   });
-  
-  // NOTE: The mobile bottom navigation bar has been completely removed from this file.
 })();

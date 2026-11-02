@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login — Great Addesam</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="container" style="padding:40px 16px; max-width:400px;">
+    <h1>Sign In</h1>
+    <form id="login-form" class="form-card">
+      <div class="form-field"><label>Email</label><input id="l-email" type="email" required /></div>
+      <div class="form-field"><label>Password</label><input id="l-pass" type="password" required /></div>
+      <button type="submit" class="btn btn-dark" style="width:100%;" id="login-btn">Sign In</button>
+      <p id="login-msg" style="text-align:center; margin-top:10px; font-size:13px;"></p>
+      <p style="text-align:center; margin-top:20px; font-size:13px;">Don't have an account? <a href="register.html" style="text-decoration:underline;">Sign Up</a></p>
+    </form>
+  </main>
+  <div id="site-footer"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/footer.js"></script>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('login-btn');
+      const msg = document.getElementById('login-msg');
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+
+      const { error } = await supabaseClient.auth.signInWithPassword({
+        email: document.getElementById('l-email').value,
+        password: document.getElementById('l-pass').value,
+      });
+
+      if (error) {
+        msg.textContent = error.message;
+        msg.style.color = '#dc2626';
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      } else {
+        window.location.href = 'account.html'; // Redirect to their account page
+      }
+    });
+  </script>
+</body>
+</html>

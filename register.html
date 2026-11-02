@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Create Account — Great Addesam</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .password-wrapper { position: relative; }
+    .password-wrapper input { padding-right: 40px; }
+    .toggle-password {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      cursor: pointer; background: none; border: none; font-size: 16px;
+      color: #737373; padding: 5px;
+    }
+    .toggle-password:hover { color: #0a0a0a; }
+    
+    select {
+      width: 100%; padding: 12px; border: 1px solid #e5e5e5; border-radius: 8px;
+      font-size: 14px; background-color: #fff; color: #333;
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+      background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;
+    }
+    select:focus { border-color: #0a0a0a; outline: none; }
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="container" style="padding:40px 16px; max-width:500px;">
+    <h1>Create an Account</h1>
+    <p class="muted">Save your details for faster checkout and track your orders.</p>
+
+    <form id="register-form" class="form-card">
+      <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">Account Details</h3>
+      <div class="form-field"><label>First Name</label><input id="r-fname" required /></div>
+      <div class="form-field"><label>Last Name</label><input id="r-lname" required /></div>
+      <div class="form-field"><label>Email</label><input id="r-email" type="email" required /></div>
+      
+      <div class="form-field">
+        <label>Password</label>
+        <div class="password-wrapper">
+          <input id="r-pass" type="password" required minlength="6" />
+          <button type="button" class="toggle-password" onclick="togglePassword('r-pass', this)">👁️</button>
+        </div>
+      </div>
+      
+      <div class="form-field">
+        <label>Confirm Password</label>
+        <div class="password-wrapper">
+          <input id="r-pass-confirm" type="password" required minlength="6" />
+          <button type="button" class="toggle-password" onclick="togglePassword('r-pass-confirm', this)">👁️</button>
+        </div>
+      </div>
+
+      <div class="form-field"><label>Phone Number</label><input id="r-phone" type="tel" required placeholder="e.g. 0240000000" /></div>
+      
+      <h3 style="margin-top:30px; border-bottom:1px solid #eee; padding-bottom:10px;">Delivery Details</h3>
+      
+      <div class="form-field">
+        <label>Region</label>
+        <select id="r-region" required>
+          <option value="" disabled selected>Select your region...</option>
+          <option value="Ahafo">Ahafo</option>
+          <option value="Ashanti">Ashanti</option>
+          <option value="Bono">Bono</option>
+          <option value="Bono East">Bono East</option>
+          <option value="Central">Central</option>
+          <option value="Eastern">Eastern</option>
+          <option value="Greater Accra">Greater Accra</option>
+          <option value="North East">North East</option>
+          <option value="Northern">Northern</option>
+          <option value="Oti">Oti</option>
+          <option value="Savannah">Savannah</option>
+          <option value="Upper East">Upper East</option>
+          <option value="Upper West">Upper West</option>
+          <option value="Volta">Volta</option>
+          <option value="Western">Western</option>
+          <option value="Western North">Western North</option>
+        </select>
+      </div>
+
+      <div class="form-field"><label>City / Town</label><input id="r-city" required placeholder="e.g. Kumasi" /></div>
+      
+      <!-- Added Suburb and Street Name -->
+      <div class="form-field"><label>Suburb / Area</label><input id="r-suburb" required placeholder="e.g. Asokwa" /></div>
+      <div class="form-field"><label>House Number / Street Name</label><input id="r-street" required placeholder="e.g. 12B, Lake Road" /></div>
+      
+      <div class="form-field">
+        <label>Nearest Landmark (Optional)</label>
+        <input id="r-landmark" placeholder="e.g. Behind the Shell Filling Station" />
+      </div>
+      
+      <div class="form-field" style="display:flex; gap:8px; align-items:flex-start; margin-top:20px;">
+        <input type="checkbox" id="r-terms" required style="width:auto; margin-top:4px;" />
+        <label for="r-terms" style="font-weight:normal; font-size:13px;">I agree to the <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a></label>
+      </div>
+
+      <button type="submit" class="btn btn-dark" style="width:100%; margin-top:10px;" id="reg-btn">Sign Up</button>
+      <p id="reg-msg" style="text-align:center; margin-top:10px; font-size:13px;"></p>
+    </form>
+  </main>
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/footer.js"></script>
+  <script>
+    function togglePassword(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🙈';
+      } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
+      }
+    }
+
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('reg-btn');
+      const msg = document.getElementById('reg-msg');
+      
+      const email = document.getElementById('r-email').value;
+      const password = document.getElementById('r-pass').value;
+      const confirmPassword = document.getElementById('r-pass-confirm').value;
+
+      if (password !== confirmPassword) {
+        msg.textContent = 'Passwords do not match. Please try again.';
+        msg.style.color = '#dc2626';
+        return;
+      }
+
+      const region = document.getElementById('r-region').value;
+      if (!region) {
+        msg.textContent = 'Please select your region.';
+        msg.style.color = '#dc2626';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Creating account...';
+      msg.textContent = ''; 
+
+      const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+        email,
+        password,
+      });
+
+      if (authError) {
+        msg.textContent = authError.message;
+        msg.style.color = '#dc2626';
+        btn.disabled = false;
+        btn.textContent = 'Sign Up';
+        return;
+      }
+
+      if (authData.user) {
+        const profileData = {
+          id: authData.user.id,
+          first_name: document.getElementById('r-fname').value,
+          last_name: document.getElementById('r-lname').value,
+          email: email,
+          phone: document.getElementById('r-phone').value,
+          region: region,
+          city: document.getElementById('r-city').value,
+          suburb: document.getElementById('r-suburb').value,
+          street_name: document.getElementById('r-street').value,
+          landmark: document.getElementById('r-landmark').value,
+        };
+
+        const { error: profileError } = await supabaseClient
+          .from('profiles')
+          .upsert(profileData);
+
+        if (profileError) {
+          console.error('Profile save error:', profileError);
+        }
+
+        document.getElementById('register-form').innerHTML = `
+          <div style="text-align:center; padding:20px;">
+            <h2 style="color:#16a34a;">✓ Check Your Email</h2>
+            <p>We sent a verification link to <strong>${email}</strong>.</p>
+            <p class="muted">Please click the link in that email to verify your account before logging in.</p>
+            <a href="login.html" class="btn btn-dark" style="margin-top:20px;">Go to Login</a>
+          </div>
+        `;
+      }
+    });
+  </script>
+</body>
+</html>
