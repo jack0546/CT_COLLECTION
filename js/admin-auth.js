@@ -1,12 +1,27 @@
 /* Shared helpers for admin pages. */
 
-/** Call on every admin page except login. Redirects if not logged in. */
+/** Call on every admin page except login. Redirects if not logged in or not an admin. */
 async function requireAdmin() {
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (!session) {
     window.location.replace('login.html');
     throw new Error('Not authenticated');
   }
+
+  // 1. Check if the logged-in user has the 'admin' role in the database
+  const { data: profile, error } = await supabaseClient
+    .from('profiles')
+    .select('role')
+    .eq('id', session.user.id)
+    .single();
+
+  // 2. If they are not an admin, block access
+  if (error || !profile || profile.role !== 'admin') {
+    alert('Access Denied: You are not an administrator.');
+    window.location.replace('../index.html'); // Send them back to the storefront
+    throw new Error('Not authorized');
+  }
+
   return session;
 }
 
@@ -30,6 +45,9 @@ async function mountAdminShell(active) {
   const shell = document.querySelector('.admin-shell');
   if (!shell) return;
 
+  // 🛑 PREVENT DUPLICATES: If the sidebar is already there, stop.
+  if (document.getElementById('admin-sidebar')) return;
+
   const mobileBar = document.createElement('div');
   mobileBar.className = 'admin-mobile-bar';
   mobileBar.innerHTML = `
@@ -44,6 +62,7 @@ async function mountAdminShell(active) {
     <div class="brand">Store Admin</div>
     <nav>
       <a href="index.html"      class="${active==='dashboard'?'active':''}">Dashboard</a>
+      <a href="pos.html"        class="${active==='pos'?'active':''}">Point of Sale</a>
       <a href="products.html"   class="${active==='products'?'active':''}">Products</a>
       <a href="categories.html" class="${active==='categories'?'active':''}">Categories</a>
       <a href="orders.html"     class="${active==='orders'?'active':''}">Orders</a>

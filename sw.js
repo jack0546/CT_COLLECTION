@@ -1,4 +1,4 @@
-const CACHE_NAME = 'great-addesam-v2'; // Changed from v1 to v2
+const CACHE_NAME = 'great-addesam-v3'; // Change v2 to v3
 const urlsToCache = [
   '/',
   '/index.html',

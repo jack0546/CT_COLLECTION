@@ -129,6 +129,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/cart.js"></script>
+  <script src="js/whatsapp.js"></script> <!-- THIS WAS MISSING -->
   <script src="js/header.js"></script>
   <script src="js/footer.js"></script>
   <script>
@@ -185,7 +186,6 @@
             itemsHTML = o.order_items.map(i => `${i.quantity}x ${i.productName}`).join(', ');
         }
 
-        // Show "Pay Now" button if it's unpaid
         let actionButtons = `<a href="track-order.html" class="btn btn-light" style="font-size:12px; padding:5px 10px; border:1px solid #ccc;">Track Order</a>`;
         
         if (o.payment_status !== 'paid') {
@@ -217,7 +217,6 @@
       }).join('');
     }
 
-    // Function to retry payment
     function retryPayment(reference, amount) {
       if (!userProfile || !userProfile.email) {
         alert("Could not find your email. Please update your profile first.");
@@ -226,13 +225,11 @@
 
       const paystack = new PaystackPop();
       paystack.newTransaction({
-        key: 'pk_live_6b9968065dc0bd4842c97ffa138e49127c862888', // Your Paystack Public Key
+        key: 'pk_live_6b9968065dc0bd4842c97ffa138e49127c862888',
         email: userProfile.email,
-        amount: Math.round(amount * 100), // Convert to pesewas
-        reference: reference, // Use the EXISTING order reference
+        amount: Math.round(amount * 100),
+        reference: reference,
         onSuccess: (transaction) => {
-          // The webhook will handle marking it as paid in the DB.
-          // We just reload the page after a small delay to show the new status.
           alert('Payment successful! Your order is now being processed.');
           setTimeout(() => window.location.reload(), 1500);
         },
@@ -243,16 +240,23 @@
     }
 
     async function loadProfile() {
+      // Added a safer check to log the exact error in the console
       const { data: profile, error } = await supabaseClient
         .from('profiles')
         .select('*')
         .eq('id', currentUser.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle so it doesn't crash if no row is found
       
       const loadingText = document.getElementById('profile-loading');
       
-      if (error || !profile) {
-        loadingText.textContent = "Error loading profile.";
+      if (error) {
+        console.error("Database Error:", error);
+        loadingText.textContent = "Error loading profile. Check console for details.";
+        return;
+      }
+      
+      if (!profile) {
+        loadingText.textContent = "No profile found. Please contact support.";
         return;
       }
 
