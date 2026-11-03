@@ -29,11 +29,13 @@ function renderGallery() {
   if (!imgs.length) imgs.push('https://placehold.co/600x600?text=No+Image');
   if (activeImageIdx >= imgs.length) activeImageIdx = 0;
   
+  // LAZY LOADING ADDED TO MAIN IMAGE
   document.getElementById('pd-main-image').innerHTML =
-    `<img src="${imgs[activeImageIdx]}" alt="${escapeHtml(currentProduct.name)} — ${escapeHtml(currentColour)}">`;
+    `<img src="${imgs[activeImageIdx]}" alt="${escapeHtml(currentProduct.name)} — ${escapeHtml(currentColour)}" loading="lazy">`;
     
+  // LAZY LOADING ADDED TO THUMBNAILS
   document.getElementById('pd-thumbs').innerHTML = imgs.map((src, i) =>
-    `<button class="${i === activeImageIdx ? 'active' : ''}" data-idx="${i}"><img src="${src}" alt=""></button>`
+    `<button class="${i === activeImageIdx ? 'active' : ''}" data-idx="${i}"><img src="${src}" alt="" loading="lazy"></button>`
   ).join('');
   
   document.querySelectorAll('#pd-thumbs button').forEach(btn => {
@@ -61,7 +63,6 @@ function renderColours() {
 function renderSizes() {
   const allSizes = sizesForColour(currentColour);
   
-  // Filter out duplicate sizes before rendering
   const seenSizes = new Set();
   const uniqueSizes = allSizes.filter(v => {
     if (seenSizes.has(v.size)) return false;
@@ -160,10 +161,11 @@ async function loadRelatedProducts() {
     .eq('category_id', currentProduct.category_id).neq('id', currentProduct.id).eq('status', 'active').limit(4);
   if (related && related.length > 0) {
     document.getElementById('related-section').style.display = 'block';
+    // LAZY LOADING ADDED TO RELATED PRODUCTS
     document.getElementById('related-grid').innerHTML = related.map(p => {
       const img = p.variant_images?.[0]?.image_url || 'https://placehold.co/400x500?text=No+Image';
       const price = p.sale_price ?? p.base_price;
-      return `<a class="product-card" href="product.html?slug=${encodeURIComponent(p.slug)}"><div class="thumb"><img src="${img}" alt="${escapeHtml(p.name)}"></div><h3>${escapeHtml(p.name)}</h3><div class="price">${formatMoney(price, currentSettings.currency_symbol)}</div></a>`;
+      return `<a class="product-card" href="product.html?slug=${encodeURIComponent(p.slug)}"><div class="thumb"><img src="${img}" alt="${escapeHtml(p.name)}" loading="lazy"></div><h3>${escapeHtml(p.name)}</h3><div class="price">${formatMoney(price, currentSettings.currency_symbol)}</div></a>`;
     }).join('');
   }
 }
@@ -212,7 +214,6 @@ async function mountProduct() {
       <a href="index.html">Home</a> / <a href="shop.html">Shop</a> / <span style="color:#0a0a0a;">${escapeHtml(currentProduct.name)}</span>
     </div>
     <div class="pd-layout">
-      <!-- THUMBS FIRST (LEFT SIDE) -->
       <div class="pd-gallery">
         <div class="pd-thumbs" id="pd-thumbs"></div>
         <div class="main-image" id="pd-main-image"></div>
@@ -250,7 +251,6 @@ async function mountProduct() {
             <button class="btn btn-dark" id="btn-buy" style="flex:1;">Buy Now</button>
           </div>
           
-          <!-- WhatsApp button removed, only Ask and Share remain -->
           <div style="display:flex; gap:10px; margin-top: 4px;">
             <a class="btn btn-light" id="btn-ask" href="#" target="_blank" rel="noopener" style="flex:1; border:1px solid #e5e5e5; font-size:13px;">💬 Ask a Question</a>
             <button class="btn btn-light" id="btn-share" style="flex:1; border:1px solid #e5e5e5; font-size:13px;">🔗 Share</button>
@@ -293,8 +293,6 @@ async function mountProduct() {
     if (!item) return showToast('Please select a size.');
     const variant = getSelectedVariant();
     if (currentQty > variant.stock_quantity) return showToast('Not enough stock.');
-    
-    // Clear cart FIRST, then add the item, then go to checkout
     clearCart(); 
     addToCart(item);
     window.location.href = 'checkout.html';

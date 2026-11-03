@@ -27,11 +27,9 @@ function renderProductCard(product) {
   const inStock = totalStock > 0;
   const price = product.sale_price ?? product.base_price;
   
-  // Fake sold count for visual effect (random 20 to 5000)
   const soldCount = Math.floor(Math.random() * 5000) + 20; 
   const soldDisplay = soldCount > 1000 ? (soldCount/1000).toFixed(1) + 'K+' : soldCount + '+';
   
-  // Visual rating
   const rating = 4.5; 
   const reviewCount = Math.floor(Math.random() * 200) + 50; 
 
@@ -119,10 +117,11 @@ function renderCategories() {
     if (filters) filters.style.display = 'none';
     if (toolbar) toolbar.style.display = 'none';
 
+    // ADDED loading="lazy" to category images
     catGrid.innerHTML = state.categories.map(c => `
       <a class="category-card" href="shop.html?category=${encodeURIComponent(c.slug)}">
         <div class="thumb" style="aspect-ratio: 1/1; background: #f5f5f5; border-radius: 12px; overflow: hidden;">
-          ${c.image_url ? `<img src="${c.image_url}" alt="${escapeHtml(c.name)}" style="width:100%; height:100%; object-fit:cover;">` : ''}
+          ${c.image_url ? `<img src="${c.image_url}" alt="${escapeHtml(c.name)}" style="width:100%; height:100%; object-fit:cover;" loading="lazy">` : ''}
         </div>
         <span style="display:block; text-align:center; margin-top:8px; font-weight:500;">${escapeHtml(c.name)}</span>
       </a>
@@ -177,7 +176,6 @@ function applyFilters() {
 }
 
 async function mountShop() {
-  // Pass an empty object to ensure the cache is used
   [state.products, state.categories] = await Promise.all([loadProducts({}), loadCategories()]);
   populateFilters();
   applyFilters();

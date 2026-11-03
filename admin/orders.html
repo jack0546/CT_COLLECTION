@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Orders — Admin</title>
   <link rel="stylesheet" href="/css/admin.css" />
+  <!-- Load jsPDF for Shipping Labels -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
-    /* Scoped dashboard-style overrides for the Orders page */
     body { background: #f8fafc; }
     .admin-main { padding: 32px; max-width: 1300px; }
     .admin-topbar { margin-bottom: 24px; }
@@ -16,7 +17,6 @@
     .order-items .item { padding: 4px 0; border-bottom: 1px solid #e5e5e5; }
     .order-items .item:last-child { border-bottom: 0; }
     .order-items .variant { color: #737373; font-size: 12px; }
-    .details-toggle { cursor: pointer; color: #2563eb; font-size: 12px; text-decoration: underline; }
     .row-details td { background: #fafafa; padding: 14px; }
     .status-select { min-width: 120px; padding: 6px 10px; border: 1px solid #d4d4d4; border-radius: 6px; background: #fff; font-size: 13px; }
     .notice { background: #fef3c7; color: #92400e; padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 20px; border: 1px solid #fde68a; }
@@ -29,13 +29,10 @@
     .admin-table th { background: transparent; border-bottom: 1px solid #e2e8f0; padding: 14px 16px; font-size: 12px; }
     .admin-table td { padding: 16px; vertical-align: top; }
 
-    /* NEW badge styling */
-    .badge-new {
-      background: #16a34a; color: #fff; font-size: 9px; 
-      padding: 2px 5px; border-radius: 4px; 
-      margin-left: 4px; font-weight: 700; 
-      vertical-align: middle;
-    }
+    /* Badges */
+    .badge-new { background: #16a34a; color: #fff; font-size: 9px; padding: 2px 5px; border-radius: 4px; margin-left: 4px; font-weight: 700; vertical-align: middle; }
+    .badge-paid { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+    .badge-unpaid { background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
   </style>
 </head>
 <body>
@@ -77,7 +74,7 @@
                 <th>Total</th>
                 <th>Payment</th>
                 <th>Delivery Status</th>
-                <th>Date</th>
+                <th>Date & Time</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -96,20 +93,15 @@
   <script>
     const STATUSES = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
     let allOrders = [];
+    let currentSettings = null;
 
     function fmt(n) { return `₵ ${Number(n).toFixed(2)}`; }
 
-    // Helper to determine if an order is "new" (needs your attention)
-    // Once it's confirmed AND paid, it's no longer new
     function isOrderNew(o) {
       const isPaid = o.payment_status === 'paid';
       const isConfirmed = o.status === 'confirmed' || o.status === 'processing' || o.status === 'shipped' || o.status === 'delivered';
-      
-      // If the order is delivered, cancelled, or fully confirmed & paid, it's not new
       if (o.status === 'cancelled' || o.status === 'delivered') return false;
       if (isConfirmed && isPaid) return false;
-      
-      // Otherwise, it's new
       return true;
     }
 
@@ -125,9 +117,12 @@
         const items = Array.isArray(o.order_items) ? o.order_items : [];
         const itemCount = items.reduce((s, i) => s + (i.quantity || 0), 0);
         const isPaid = o.payment_status === 'paid';
-        
-        // Use our smart new-order check
         const showNewBadge = isOrderNew(o);
+        
+        // Format Date and Time
+        const dateObj = new Date(o.created_at);
+        const dateStr = dateObj.toLocaleDateString('en-GB');
+        const timeStr = dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
         return `
           <tr>
@@ -143,20 +138,23 @@
             </td>
             <td>${fmt(o.total_amount)}</td>
             <td>
-              <select class="status-select" data-payment-id="${o.id}">
-                <option value="unpaid" ${!isPaid ? 'selected' : ''}>Unpaid</option>
-                <option value="paid" ${isPaid ? 'selected' : ''}>Paid</option>
-              </select>
+              <span class="${isPaid ? 'badge-paid' : 'badge-unpaid'}">
+                ${isPaid ? 'PAID' : 'UNPAID'}
+              </span>
             </td>
             <td>
               <select class="status-select" data-order-id="${o.id}">
                 ${STATUSES.map(s => `<option value="${s}" ${s === o.status ? 'selected' : ''}>${s}</option>`).join('')}
               </select>
             </td>
-            <td>${new Date(o.created_at).toLocaleDateString()}</td>
             <td>
-              <div style="display:flex; gap:6px;">
+              ${dateStr}<br>
+              <span style="font-size:11px; color:#666;">${timeStr}</span>
+            </td>
+            <td>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
                 <button class="btn btn-light btn-sm" data-details="${o.id}">View</button>
+                <button class="btn btn-dark btn-sm" onclick="printLabel('${o.id}')">Print Label</button>
                 <button class="btn btn-red btn-sm" data-delete="${o.id}">Del</button>
               </div>
             </td>
@@ -180,7 +178,7 @@
         `;
       }).join('');
 
-      // Handle Delivery Status Change
+      // Status changes
       tbody.querySelectorAll('[data-order-id]').forEach(sel => {
         sel.addEventListener('change', async () => {
           const { error } = await supabaseClient.from('orders').update({ status: sel.value }).eq('id', sel.dataset.orderId);
@@ -188,27 +186,12 @@
           else {
             const order = allOrders.find(o => o.id === sel.dataset.orderId);
             if (order) order.status = sel.value;
-            // Re-render the row so the NEW badge disappears/appears instantly
             applyOrderFilters();
           }
         });
       });
 
-      // Handle Payment Status Change
-      tbody.querySelectorAll('[data-payment-id]').forEach(sel => {
-        sel.addEventListener('change', async () => {
-          const { error } = await supabaseClient.from('orders').update({ payment_status: sel.value }).eq('id', sel.dataset.paymentId);
-          if (error) alert('Update failed: ' + error.message);
-          else {
-            const order = allOrders.find(o => o.id === sel.dataset.paymentId);
-            if (order) order.payment_status = sel.value;
-            // Re-render so the NEW badge disappears when paid
-            applyOrderFilters();
-          }
-        });
-      });
-
-      // Handle Details Toggle
+      // Details toggle
       tbody.querySelectorAll('[data-details]').forEach(btn => {
         btn.addEventListener('click', () => {
           const row = tbody.querySelector(`[data-details-row="${btn.dataset.details}"]`);
@@ -216,17 +199,14 @@
         });
       });
 
-      // Handle Single Delete
+      // Delete
       tbody.querySelectorAll('[data-delete]').forEach(btn => {
         btn.addEventListener('click', async () => {
-          if (!confirm('Are you sure you want to permanently delete this order?')) return;
+          if (!confirm('Delete this order permanently?')) return;
           const id = btn.dataset.delete;
           const { error } = await supabaseClient.from('orders').delete().eq('id', id);
           if (error) alert('Delete failed: ' + error.message);
-          else {
-            allOrders = allOrders.filter(o => o.id !== id);
-            applyOrderFilters();
-          }
+          else { allOrders = allOrders.filter(o => o.id !== id); applyOrderFilters(); }
         });
       });
     }
@@ -244,7 +224,6 @@
         );
       }
       
-      // Filter by status
       if (statusStr === 'today') {
         const today = new Date().toDateString();
         filtered = filtered.filter(o => new Date(o.created_at).toDateString() === today);
@@ -262,43 +241,76 @@
       applyOrderFilters();
     }
 
-    // Handle Bulk Delete (ONLY UNPAID abandoned carts)
-    document.getElementById('bulk-delete-btn').addEventListener('click', async () => {
-      if (!confirm('Are you sure you want to delete ALL UNPAID cancelled orders? This cannot be undone.')) return;
+    // --- SHIPPING LABEL GENERATOR ---
+    async function printLabel(orderId) {
+      const order = allOrders.find(o => o.id === orderId);
+      if (!order) return;
       
-      const btn = document.getElementById('bulk-delete-btn');
-      btn.disabled = true;
-      btn.textContent = 'Deleting...';
+      if (!currentSettings) currentSettings = await getStoreSettings();
 
-      // ONLY delete cancelled orders that are ALSO unpaid
-      const { error } = await supabaseClient
-        .from('orders')
-        .delete()
-        .eq('status', 'cancelled')
-        .eq('payment_status', 'unpaid');
+      const doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: [100, 150] });
       
-      if (error) {
-        alert('Delete failed: ' + error.message);
-        btn.disabled = false;
-        btn.textContent = 'Delete Abandoned Carts';
-      } else {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+      doc.text("SHIPPING LABEL", 75, 15, { align: 'center' });
+      
+      doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.5);
+      doc.line(10, 20, 140, 20);
+      
+      doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+      doc.text("TO:", 10, 35);
+      
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+      doc.text(`Name: ${order.customer_name}`, 10, 45);
+      doc.text(`Phone: ${order.customer_phone}`, 10, 52);
+      
+      const addrLines = doc.splitTextToSize(`Address: ${order.delivery_address || 'N/A'}`, 120);
+      doc.text(addrLines, 10, 59);
+      
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+      doc.text(`Order Ref: ${order.order_reference}`, 10, 80);
+      
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+      doc.text("Items:", 10, 90);
+      let y = 97;
+      order.order_items.forEach(item => {
+        doc.text(`- ${item.quantity}x ${item.productName} (${item.colourName}/${item.size})`, 10, y);
+        y += 6;
+      });
+
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+      doc.text("FROM:", 110, 35);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+      doc.text(currentSettings?.store_name || 'Great Addesam', 110, 42);
+      doc.text(currentSettings?.contact_phone || '', 110, 48);
+
+      doc.save(`Label-${order.order_reference}.pdf`);
+    }
+
+    // Handle Bulk Delete
+    document.getElementById('bulk-delete-btn').addEventListener('click', async () => {
+      if (!confirm('Delete ALL UNPAID cancelled orders?')) return;
+      const btn = document.getElementById('bulk-delete-btn');
+      btn.disabled = true; btn.textContent = 'Deleting...';
+      const { error } = await supabaseClient.from('orders').delete().eq('status', 'cancelled').eq('payment_status', 'unpaid');
+      
+      if (error) { alert('Delete failed: ' + error.message); btn.disabled = false; btn.textContent = 'Delete Abandoned Carts'; }
+      else {
         btn.textContent = 'Deleted ✓';
-        setTimeout(() => {
-          btn.disabled = false;
-          btn.textContent = 'Delete Abandoned Carts';
-        }, 2000);
-        loadOrders(); // Refresh table
+        setTimeout(() => { btn.disabled = false; btn.textContent = 'Delete Abandoned Carts'; }, 2000);
+        loadOrders(); 
       }
     });
 
     // Download CSV
     document.getElementById('export-csv-btn').addEventListener('click', () => {
       if (!allOrders.length) return alert('No orders to export.');
-      const headers = ['Order Ref', 'Date', 'Delivery Status', 'Payment Status', 'Customer Name', 'Phone', 'Location', 'Address', 'Notes', 'Total Amount', 'Items'];
+      const headers = ['Order Ref', 'Date', 'Time', 'Delivery Status', 'Payment Status', 'Customer Name', 'Phone', 'Location', 'Address', 'Notes', 'Total Amount', 'Items'];
       
       const csvRows = allOrders.map(o => {
+        const d = new Date(o.created_at);
+        const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
         const itemsStr = (o.order_items || []).map(i => `${i.productName} (${i.colourName}/${i.size}) x${i.quantity}`).join(' | ');
-        const row = [o.order_reference, new Date(o.created_at).toLocaleDateString(), o.status, o.payment_status || 'unpaid', o.customer_name, o.customer_phone, o.delivery_location, o.delivery_address, o.notes || '', o.total_amount, itemsStr];
+        const row = [o.order_reference, d.toLocaleDateString('en-GB'), time, o.status, o.payment_status || 'unpaid', o.customer_name, o.customer_phone, o.delivery_location, o.delivery_address, o.notes || '', o.total_amount, itemsStr];
         return row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',');
       });
 
@@ -308,9 +320,7 @@
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `orders_export_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
     });
 
     document.getElementById('order-search').addEventListener('input', applyOrderFilters);

@@ -15,7 +15,6 @@ function renderProductCard(product) {
   const inStock = totalStock > 0;
   const price = product.sale_price ?? product.base_price;
   
-  // Visual rating (random for now, can be replaced with real review calculation later)
   const rating = 4.5; 
   const reviewCount = Math.floor(Math.random() * 200) + 50; 
 
@@ -57,6 +56,8 @@ function renderProductCard(product) {
 
 async function mountHome() {
   const cats = await loadCategories();
+  
+  // ADDED loading="lazy" to category images
   document.getElementById('category-grid').innerHTML = cats.slice(0, 12).map(c => `
     <a class="category-card" href="shop.html?category=${encodeURIComponent(c.slug)}">
       <div class="thumb">
