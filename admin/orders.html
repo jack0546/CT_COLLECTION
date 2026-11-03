@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Orders — Admin</title>
   <link rel="stylesheet" href="/css/admin.css" />
-  <!-- Load jsPDF for Shipping Labels -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body { background: #f8fafc; }
@@ -29,7 +28,6 @@
     .admin-table th { background: transparent; border-bottom: 1px solid #e2e8f0; padding: 14px 16px; font-size: 12px; }
     .admin-table td { padding: 16px; vertical-align: top; }
 
-    /* Badges */
     .badge-new { background: #16a34a; color: #fff; font-size: 9px; padding: 2px 5px; border-radius: 4px; margin-left: 4px; font-weight: 700; vertical-align: middle; }
     .badge-paid { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
     .badge-unpaid { background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
@@ -98,11 +96,9 @@
     function fmt(n) { return `₵ ${Number(n).toFixed(2)}`; }
 
     function isOrderNew(o) {
-      const isPaid = o.payment_status === 'paid';
-      const isConfirmed = o.status === 'confirmed' || o.status === 'processing' || o.status === 'shipped' || o.status === 'delivered';
       if (o.status === 'cancelled' || o.status === 'delivered') return false;
-      if (isConfirmed && isPaid) return false;
-      return true;
+      if (o.status === 'confirmed' || o.status === 'processing' || o.status === 'shipped') return false;
+      return true; // Pending orders are always "new"
     }
 
     function renderOrders(ordersToRender) {
@@ -119,7 +115,6 @@
         const isPaid = o.payment_status === 'paid';
         const showNewBadge = isOrderNew(o);
         
-        // Format Date and Time
         const dateObj = new Date(o.created_at);
         const dateStr = dateObj.toLocaleDateString('en-GB');
         const timeStr = dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -178,7 +173,6 @@
         `;
       }).join('');
 
-      // Status changes
       tbody.querySelectorAll('[data-order-id]').forEach(sel => {
         sel.addEventListener('change', async () => {
           const { error } = await supabaseClient.from('orders').update({ status: sel.value }).eq('id', sel.dataset.orderId);
@@ -191,7 +185,6 @@
         });
       });
 
-      // Details toggle
       tbody.querySelectorAll('[data-details]').forEach(btn => {
         btn.addEventListener('click', () => {
           const row = tbody.querySelector(`[data-details-row="${btn.dataset.details}"]`);
@@ -199,7 +192,6 @@
         });
       });
 
-      // Delete
       tbody.querySelectorAll('[data-delete]').forEach(btn => {
         btn.addEventListener('click', async () => {
           if (!confirm('Delete this order permanently?')) return;
@@ -241,18 +233,14 @@
       applyOrderFilters();
     }
 
-    // --- SHIPPING LABEL GENERATOR ---
     async function printLabel(orderId) {
       const order = allOrders.find(o => o.id === orderId);
       if (!order) return;
-      
       if (!currentSettings) currentSettings = await getStoreSettings();
 
       const doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: [100, 150] });
-      
       doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
       doc.text("SHIPPING LABEL", 75, 15, { align: 'center' });
-      
       doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.5);
       doc.line(10, 20, 140, 20);
       
@@ -286,7 +274,6 @@
       doc.save(`Label-${order.order_reference}.pdf`);
     }
 
-    // Handle Bulk Delete
     document.getElementById('bulk-delete-btn').addEventListener('click', async () => {
       if (!confirm('Delete ALL UNPAID cancelled orders?')) return;
       const btn = document.getElementById('bulk-delete-btn');
@@ -301,7 +288,6 @@
       }
     });
 
-    // Download CSV
     document.getElementById('export-csv-btn').addEventListener('click', () => {
       if (!allOrders.length) return alert('No orders to export.');
       const headers = ['Order Ref', 'Date', 'Time', 'Delivery Status', 'Payment Status', 'Customer Name', 'Phone', 'Location', 'Address', 'Notes', 'Total Amount', 'Items'];

@@ -20,16 +20,13 @@ async function mountCheckout() {
   
   if (user) {
     currentUser = user;
-    // Fetch their saved profile details
     const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', user.id).single();
     
     if (profile) {
       userProfile = profile;
-      // Hide the form fields, show the summary
       document.getElementById('guest-form-fields').style.display = 'none';
       document.getElementById('logged-in-info').style.display = 'block';
       
-      // Format the address for display
       const displayAddress = [
         profile.region,
         profile.city,
@@ -43,7 +40,6 @@ async function mountCheckout() {
       document.getElementById('display-address').textContent = displayAddress;
     }
   } else {
-    // Not logged in? Force them to login or register
     alert('Please log in or create an account to complete your order.');
     window.location.href = 'login.html?redirect=checkout.html';
     return;
@@ -51,7 +47,6 @@ async function mountCheckout() {
 
   function getCustomerData() {
     if (currentUser && userProfile) {
-      // Build the address EXACTLY as requested: Region - City - Area - Street - Landmark
       const formattedAddress = [
         userProfile.region,
         userProfile.city,
@@ -65,13 +60,12 @@ async function mountCheckout() {
         email: userProfile.email,
         phone: userProfile.phone,
         location: `${userProfile.city}, ${userProfile.region}`,
-        address: formattedAddress, // The full formatted string
+        address: formattedAddress,
         notes: document.getElementById('c-notes').value.trim() || '',
         user_id: currentUser.id
       };
-    } else {
-      return null;
     }
+    return null;
   }
 
   paystackBtn.addEventListener('click', async (e) => {
@@ -103,8 +97,8 @@ async function mountCheckout() {
         order_items: items,
         subtotal: total,
         total_amount: total,
-        status: 'pending',
-        payment_status: 'unpaid',
+        status: 'pending', // Always pending initially
+        payment_status: 'unpaid', // Always unpaid initially
         user_id: customer.user_id 
       });
     } catch (err) {
