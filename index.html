@@ -9,19 +9,121 @@
   <link rel="manifest" href="manifest.json">
   <meta name="description" content="Premium fashion delivered to your door. Order easily via WhatsApp." />
   <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    /* Hero Slider Styling */
+    .hero-slider {
+      position: relative;
+      width: 100%;
+      height: 70vh;
+      min-height: 500px;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+      display: flex;
+      align-items: center;
+      padding: 0 10%;
+    }
+
+    /* Dark overlay for readability */
+    .slide::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 1;
+    }
+
+    .slide.active {
+      opacity: 1;
+      z-index: 2;
+    }
+
+    .slide-content {
+      position: relative;
+      z-index: 3;
+      max-width: 600px;
+      color: #fff;
+    }
+
+    .hero-eyebrow {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .slide-content h1 {
+      font-size: 48px;
+      font-weight: 800;
+      margin: 0 0 15px;
+      line-height: 1.1;
+    }
+
+    .slide-content p {
+      font-size: 16px;
+      margin-bottom: 25px;
+      opacity: 0.9;
+    }
+
+    @media (max-width: 768px) {
+      .slide-content h1 { font-size: 32px; }
+      .hero-slider { height: 60vh; min-height: 400px; }
+    }
+  </style>
 </head>
 <body>
   <div id="site-header"></div>
 
-  <section class="hero">
-    <img src="https://sriduasaznesdcemdtmd.supabase.co/storage/v1/object/public/product-images/front%20(2).jpg" alt="Great Addesam Hero" class="hero-bg" />
-    <div class="hero-inner">
-      <p class="hero-eyebrow">Spring · Summer 2026</p>
-      <h1>Discover Your Style.</h1>
-      <p>Premium fashion crafted for everyday confidence. Order in seconds via WhatsApp.</p>
-      <div class="hero-cta">
-        <a class="btn btn-light" href="shop.html">Shop Now</a>
-        <a class="btn btn-ghost" href="shop.html?view=new">New Arrivals</a>
+  <!-- Hero Slider -->
+  <section class="hero-slider">
+    <div class="slide active" style="background-image: url('https://sriduasaznesdcemdtmd.supabase.co/storage/v1/object/public/product-images/WS.jpg');">
+      <div class="slide-content">
+        <p class="hero-eyebrow">Spring · Summer 2026</p>
+        <h1>Discover Your Style.</h1>
+        <p>Premium fashion crafted for everyday confidence.</p>
+        <a class="btn btn-light" href="shop.html" style="padding: 12px 24px; font-weight: bold;">Shop Now</a>
+      </div>
+    </div>
+    
+    <div class="slide" style="background-image: url('https://sriduasaznesdcemdtmd.supabase.co/storage/v1/object/public/product-images/WA.jpg');">
+      <div class="slide-content">
+        <p class="hero-eyebrow">New Arrivals</p>
+        <h1>Elevate Your Wardrobe.</h1>
+        <p>Fresh drops just landed. Don't miss out.</p>
+        <a class="btn btn-light" href="shop.html?view=new" style="padding: 12px 24px; font-weight: bold;">Shop New Arrivals</a>
+      </div>
+    </div>
+
+    <div class="slide" style="background-image: url('https://sriduasaznesdcemdtmd.supabase.co/storage/v1/object/public/product-images/WE.jpg');">
+      <div class="slide-content">
+        <p class="hero-eyebrow">Limited Time</p>
+        <h1>Up to 30% Off.</h1>
+        <p>Shop our exclusive sale collection today.</p>
+        <a class="btn btn-light" href="shop.html?view=sale" style="padding: 12px 24px; font-weight: bold;">Shop Sale</a>
+      </div>
+    </div>
+    <div class="slide" style="background-image: url('https://sriduasaznesdcemdtmd.supabase.co/storage/v1/object/public/product-images/WQ.jpg');">
+      <div class="slide-content">
+        <p class="hero-eyebrow">Limited Time</p>
+        <h1>Up to 30% Off.</h1>
+        <p>Shop our exclusive sale collection today.</p>
+        <a class="btn btn-light" href="shop.html?view=sale" style="padding: 12px 24px; font-weight: bold;">Shop Sale</a>
+      </div>
+    </div>
+    <div class="slide" style="background-image: url('https://sriduasaznesdcemdtmd.supabase.co/storage/v1/object/public/product-images/WR.jpg');">
+      <div class="slide-content">
+        <p class="hero-eyebrow">Limited Time</p>
+        <h1>Up to 30% Off.</h1>
+        <p>Shop our exclusive sale collection today.</p>
+        <a class="btn btn-light" href="shop.html?view=sale" style="padding: 12px 24px; font-weight: bold;">Shop Sale</a>
       </div>
     </div>
   </section>
@@ -69,6 +171,22 @@
   <script src="js/footer.js"></script>
   <script src="js/home.js"></script>
   <script>
+    // Hero Slider Logic
+    function initSlider() {
+      const slides = document.querySelectorAll('.slide');
+      if (slides.length === 0) return;
+      
+      let currentSlide = 0;
+      
+      setInterval(() => {
+        slides[currentSlide].classList.remove('active');
+        currentSlide = (currentSlide + 1) % slides.length;
+        slides[currentSlide].classList.add('active');
+      }, 5000); // Changes every 5 seconds
+    }
+
+    document.addEventListener('DOMContentLoaded', initSlider);
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW failed', err));

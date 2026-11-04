@@ -66,6 +66,7 @@
           </div>
 
           <div class="profile-data-row"><span class="profile-data-label">Full Name</span><span class="profile-data-value" id="view-name"></span></div>
+          <div class="profile-data-row"><span class="profile-data-label">Email Address (Cannot be changed)</span><span class="profile-data-value" id="view-email" style="color: #666;"></span></div>
           <div class="profile-data-row"><span class="profile-data-label">Phone Number</span><span class="profile-data-value" id="view-phone"></span></div>
           
           <h4 style="margin: 20px 0 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Address</h4>
@@ -129,7 +130,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/cart.js"></script>
-  <script src="js/whatsapp.js"></script> <!-- THIS WAS MISSING -->
+  <script src="js/whatsapp.js"></script> 
   <script src="js/header.js"></script>
   <script src="js/footer.js"></script>
   <script>
@@ -144,7 +145,6 @@
       }
       currentUser = user;
       
-      // Fetch profile once
       const { data } = await supabaseClient.from('profiles').select('*').eq('id', user.id).single();
       userProfile = data;
 
@@ -176,7 +176,6 @@
 
       list.innerHTML = orders.map(o => {
         const payClass = o.payment_status === 'paid' ? 'status-paid' : 'status-unpaid';
-        
         const currentStatus = (o.status || 'pending').toLowerCase();
         const statusClass = `badge-${currentStatus}`;
         const statusText = currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1);
@@ -223,15 +222,26 @@
         return;
       }
 
+      const newRef = `${reference}-RETRY-${Date.now()}`;
+
       const paystack = new PaystackPop();
       paystack.newTransaction({
         key: 'pk_live_6b9968065dc0bd4842c97ffa138e49127c862888',
         email: userProfile.email,
         amount: Math.round(amount * 100),
-        reference: reference,
-        onSuccess: (transaction) => {
-          alert('Payment successful! Your order is now being processed.');
-          setTimeout(() => window.location.reload(), 1500);
+        reference: newRef,
+        onSuccess: async (transaction) => {
+          try {
+            await supabaseClient.from('orders').update({ 
+              payment_status: 'paid',
+              paystack_reference: newRef 
+            }).eq('order_reference', reference);
+
+            alert('Payment successful! Your order is now paid.');
+            setTimeout(() => window.location.reload(), 1500);
+          } catch (err) {
+            alert('Payment went through, but we could not update your order. Contact support with ref: ' + newRef);
+          }
         },
         onCancel: () => {
           alert('Payment cancelled.');
@@ -240,18 +250,16 @@
     }
 
     async function loadProfile() {
-      // Added a safer check to log the exact error in the console
       const { data: profile, error } = await supabaseClient
         .from('profiles')
         .select('*')
         .eq('id', currentUser.id)
-        .maybeSingle(); // Use maybeSingle so it doesn't crash if no row is found
+        .maybeSingle();
       
       const loadingText = document.getElementById('profile-loading');
       
       if (error) {
-        console.error("Database Error:", error);
-        loadingText.textContent = "Error loading profile. Check console for details.";
+        loadingText.textContent = "Error loading profile.";
         return;
       }
       
@@ -273,6 +281,7 @@
       ].filter(Boolean).join(' - ');
 
       document.getElementById('view-name').textContent = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Not set';
+      document.getElementById('view-email').textContent = profile.email || 'Not set';
       document.getElementById('view-phone').textContent = profile.phone || 'Not set';
       document.getElementById('view-full-address').textContent = fullAddress || 'Not set';
 
