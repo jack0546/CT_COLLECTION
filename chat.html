@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Live Chat — Great Addesam</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .chat-container {
+      max-width: 800px;
+      margin: 40px auto;
+      height: calc(100vh - 150px);
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .chat-header {
+      padding: 20px;
+      background: #0a0a0a;
+      color: #fff;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #fafafa;
+    }
+    .msg {
+      padding: 10px 15px;
+      border-radius: 8px;
+      max-width: 75%;
+      word-break: break-word;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .msg.customer {
+      background: #dcfce7;
+      color: #166534;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+    }
+    .msg.admin {
+      background: #f3f4f6;
+      color: #333;
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+    }
+    .chat-input-area {
+      padding: 15px 20px;
+      border-top: 1px solid #eee;
+      display: flex;
+      gap: 10px;
+      background: #fff;
+    }
+    .chat-input-area input {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .chat-input-area button {
+      padding: 12px 24px;
+      background: #16a34a;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .chat-input-area button:hover { background: #15803d; }
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container" style="padding: 0 16px;">
+    <div class="chat-container">
+      <div class="chat-header">
+        <span>Chat with Support</span>
+      </div>
+      <div class="chat-messages" id="chat-messages">
+        <p class="muted" style="text-align:center; margin-top:20px;">Loading messages...</p>
+      </div>
+      <div class="chat-input-area">
+        <input id="chat-input" type="text" placeholder="Type a message..." />
+        <button id="chat-send">Send</button>
+      </div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/whatsapp.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/footer.js"></script>
+  <script>
+    let chatChannel = null;
+    let chatUser = null;
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const chatSend = document.getElementById('chat-send');
+
+    async function initChat() {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) {
+        chatMessages.innerHTML = '<p style="text-align:center; padding:20px;">Please <a href="login.html" style="text-decoration:underline;">log in</a> to chat with support.</p>';
+        chatInput.disabled = true;
+        chatSend.disabled = true;
+        return;
+      }
+      
+      chatUser = user;
+
+      // Load history
+      const { data: msgs } = await supabaseClient
+        .from('chat_messages')
+        .select('*')
+        .eq('user_id', chatUser.id)
+        .order('created_at', { ascending: true });
+
+      chatMessages.innerHTML = '';
+      if (msgs && msgs.length > 0) {
+        msgs.forEach(appendMessage);
+      } else {
+        chatMessages.innerHTML = '<p class="muted" style="text-align:center;">Send us a message, we usually reply within minutes.</p>';
+      }
+
+      // Subscribe to new messages
+      chatChannel = supabaseClient
+        .channel('customer-chat-page')
+        .on('postgres_changes', { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'chat_messages',
+          filter: `user_id=eq.${chatUser.id}`
+        }, payload => {
+          if (payload.new.sender === 'admin') {
+            // Remove the "send us a message" text if it exists
+            const emptyMsg = chatMessages.querySelector('.muted');
+            if (emptyMsg) emptyMsg.remove();
+            
+            appendMessage(payload.new);
+          }
+        })
+        .subscribe();
+    }
+
+    function appendMessage(msg) {
+      const emptyMsg = chatMessages.querySelector('.muted');
+      if (emptyMsg) emptyMsg.remove();
+
+      const div = document.createElement('div');
+      div.className = `msg ${msg.sender}`;
+      div.textContent = msg.message;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    chatSend.addEventListener('click', async () => {
+      const text = chatInput.value.trim();
+      if (!text || !chatUser) return;
+      chatInput.value = '';
+      
+      await supabaseClient.from('chat_messages').insert({
+        user_id: chatUser.id,
+        sender: 'customer',
+        message: text
+      });
+      
+      appendMessage({ sender: 'customer', message: text });
+    });
+
+    chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') chatSend.click();
+    });
+
+    initChat();
+  </script>
+</body>
+</html>
