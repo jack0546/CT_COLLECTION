@@ -4,113 +4,32 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Chat with Support — Great Addesam</title>
-  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/styles.css" />
   <style>
-    /* Lock the page height */
     html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
-    
-    .wa-container { 
-      max-width: 900px; 
-      margin: 20px auto; 
-      height: calc(100% - 120px); 
-      background: #efeae2; 
-      background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); 
-      background-size: cover; 
-      border: 1px solid #d1d7db; 
-      border-radius: 8px; 
-      display: flex; 
-      flex-direction: column; 
-      overflow: hidden; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
-      position: relative; /* Crucial for absolute input */
-    }
-
-    .wa-header { 
-      padding: 10px 15px; 
-      background: #f0f2f5; 
-      border-bottom: 1px solid #d1d7db; 
-      display: flex; 
-      align-items: center; 
-      gap: 12px; 
-      flex-shrink: 0; 
-    }
-    
+    .wa-container { max-width: 900px; margin: 20px auto; height: calc(100% - 120px); background: #efeae2; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; border: 1px solid #d1d7db; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: relative; }
+    .wa-header { padding: 10px 15px; background: #f0f2f5; border-bottom: 1px solid #d1d7db; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
     .wa-back-btn { display: none; background: none; border: none; color: #0a0a0a; font-size: 20px; cursor: pointer; padding: 0; margin-right: 5px; text-decoration: none; }
-
     .wa-avatar { width: 38px; height: 38px; border-radius: 50%; background: #0a0a0a; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: #fff; flex-shrink: 0; }
+    .wa-messages { flex: 1; overflow-y: auto; padding: 20px 30px 80px 30px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
     
-    /* THE FIX: Add padding bottom to make room for the absolute input */
-    .wa-messages { 
-      flex: 1; 
-      overflow-y: auto; 
-      padding: 20px 30px 80px 30px; 
-      display: flex; 
-      flex-direction: column; 
-      gap: 10px; 
-      min-height: 0; 
-    }
-    
-    .wa-msg { max-width: 80%; padding: 4px; border-radius: 8px; font-size: 14px; line-height: 1.4; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); word-wrap: break-word; }
+    /* Text Message Styling */
+    .wa-msg { max-width: 80%; padding: 6px 10px; border-radius: 8px; font-size: 14px; line-height: 1.4; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); word-wrap: break-word; }
     .wa-msg.customer { background: #d9fdd3; align-self: flex-end; border-top-right-radius: 0; color: #111b21; }
     .wa-msg.admin { background: #fff; align-self: flex-start; border-top-left-radius: 0; color: #111b21; }
     
-    .wa-img { width: 100%; max-width: 300px; max-height: 300px; object-fit: cover; border-radius: 6px; cursor: pointer; display: block; }
-    
-    .wa-doc { display: flex; align-items: center; gap: 10px; background: #f0f2f5; padding: 10px; border-radius: 6px; margin-bottom: 5px; text-decoration: none; color: #111b21; cursor: pointer; }
-    .wa-doc:hover { background: #e5e7eb; }
-    .wa-doc-icon { background: #dc2626; color: #fff; width: 40px; height: 40px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; flex-shrink: 0; }
-    .wa-doc-info { flex: 1; min-width: 0; }
-    .wa-doc-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .wa-doc-size { font-size: 11px; color: #667781; }
-    
-    .msg-content { padding: 4px 8px; }
+    .chat-link { color: #027eb5; text-decoration: underline; word-break: break-all; }
     .wa-time { font-size: 11px; color: #667781; float: right; margin-left: 10px; margin-top: 5px; }
     .wa-tick { font-size: 11px; color: #53bdeb; margin-left: 4px; }
-
-    /* THE FIX: Absolute positioning for input area */
-    .wa-input-area { 
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 10px 15px; 
-      background: #f0f2f5; 
-      display: flex; 
-      gap: 8px; 
-      align-items: center; 
-      border-top: 1px solid #d1d7db; 
-      z-index: 10;
-    }
     
-    .wa-icon-btn { background: none; border: none; cursor: pointer; color: #54656f; padding: 5px; display: flex; align-items: center; justify-content: center; }
-    .wa-icon-btn:hover { color: #00a884; }
-    .wa-input-area input { flex: 1; padding: 10px 15px; border-radius: 20px; border: none; outline: none; font-size: 15px; min-width: 0; }
+    /* Input Area */
+    .wa-input-area { position: absolute; bottom: 0; left: 0; right: 0; padding: 10px 15px; background: #f0f2f5; display: flex; gap: 8px; align-items: center; border-top: 1px solid #d1d7db; z-index: 10; }
+    .wa-input-area input[type="text"] { flex: 1; padding: 10px 15px; border-radius: 20px; border: none; outline: none; font-size: 15px; min-width: 0; }
     .wa-send-btn { background: #00a884; color: #fff; border: none; border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
     .wa-send-btn:hover { background: #008f72; }
-
-    .preview-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 10000; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
-    .preview-content { background: #fff; border-radius: 12px; overflow: hidden; width: 100%; max-width: 500px; display: flex; flex-direction: column; }
-    .preview-img { width: 100%; max-height: 50vh; object-fit: contain; background: #000; }
-    .preview-footer { padding: 15px; background: #f0f2f5; }
-    .preview-footer input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 10px; }
-    .preview-actions { display: flex; justify-content: flex-end; gap: 10px; }
-    .btn-cancel { background: #ccc; color: #333; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
-    .btn-send { background: #00a884; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
     
-    /* THE FIX: Mobile adjustments to match Admin */
     @media (max-width: 768px) { 
-      .wa-container { 
-        margin: 0; 
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 100%; 
-        border-radius: 0; 
-        border: none; 
-      } 
+      .wa-container { margin: 0; position: absolute; top: 0; bottom: 0; left: 0; right: 0; height: 100%; border-radius: 0; border: none; } 
       .wa-back-btn { display: block; }
       .wa-messages { padding: 15px 15px 80px 15px; } 
       .wa-input-area { padding-bottom: 20px; }
@@ -119,12 +38,10 @@
 </head>
 <body>
   <div id="site-header"></div>
-
   <main class="container" style="padding: 0;">
     <div class="wa-container">
       <div class="wa-header">
         <a href="index.html" class="wa-back-btn">←</a>
-        
         <div class="wa-avatar">A</div>
         <div>
           <strong style="font-size:15px; color:#111b21; display:block; line-height:1.2;">Great Addesam Support</strong>
@@ -141,16 +58,6 @@
       </div>
 
       <div class="wa-input-area">
-        <input type="file" id="image-upload" accept="image/*" style="display:none;">
-        <button class="wa-icon-btn" onclick="document.getElementById('image-upload').click()" title="Send Image">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5-7l-3 3.72L9 13l-3 4h12l-4-5z"/></svg>
-        </button>
-        
-        <input type="file" id="document-upload" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none;">
-        <button class="wa-icon-btn" onclick="document.getElementById('document-upload').click()" title="Send Document">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-        </button>
-
         <input id="chat-input" type="text" placeholder="Type a message">
         <button class="wa-send-btn" id="chat-send">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -159,162 +66,55 @@
     </div>
   </main>
 
-  <div class="preview-modal" id="preview-modal">
-    <div class="preview-content">
-      <img id="preview-image" class="preview-img" src="" alt="Preview">
-      <div class="preview-footer">
-        <input type="text" id="preview-caption" placeholder="Add a caption...">
-        <div class="preview-actions">
-          <button class="btn-cancel" onclick="closePreview()">Cancel</button>
-          <button class="btn-send" id="preview-send-btn" onclick="sendPreviewedImage()">Send</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div id="site-footer" style="display:none;"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-client.js"></script>
-  <script src="js/cart.js"></script>
-  <script src="js/whatsapp.js"></script>
-  <script src="js/header.js"></script>
-  <script src="js/footer.js"></script>
   <script>
-    let chatChannel = null;
-    let updateChannel = null;
     let chatUser = null;
-    let pendingFile = null;
-
     const chatMessages = document.getElementById('chat-messages');
     const chatInput = document.getElementById('chat-input');
     const chatSend = document.getElementById('chat-send');
-    const imageUpload = document.getElementById('image-upload');
-    const documentUpload = document.getElementById('document-upload');
-    
-    const previewModal = document.getElementById('preview-modal');
-    const previewImage = document.getElementById('preview-image');
-    const previewCaption = document.getElementById('preview-caption');
 
-    function playNotificationSound() {
-      try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContext) return;
-        const ctx = new AudioContext();
-        const osc1 = ctx.createOscillator(); const gain1 = ctx.createGain();
-        osc1.type = 'sine'; osc1.frequency.setValueAtTime(880, ctx.currentTime); 
-        gain1.gain.setValueAtTime(0.3, ctx.currentTime); gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-        osc1.connect(gain1); gain1.connect(ctx.destination); osc1.start(ctx.currentTime); osc1.stop(ctx.currentTime + 0.3);
-        const osc2 = ctx.createOscillator(); const gain2 = ctx.createGain();
-        osc2.type = 'sine'; osc2.frequency.setValueAtTime(660, ctx.currentTime + 0.1); 
-        gain2.gain.setValueAtTime(0.3, ctx.currentTime + 0.1); gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-        osc2.connect(gain2); gain2.connect(ctx.destination); osc2.start(ctx.currentTime + 0.1); osc2.stop(ctx.currentTime + 0.4);
-      } catch (e) {}
+    function formatLinks(text) {
+      if (!text) return '';
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      return text.replace(urlRegex, url => `<a href="${url}" target="_blank" class="chat-link">${url}</a>`);
     }
 
     async function initChat() {
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (!user) {
-        chatMessages.innerHTML = '<p style="text-align:center; padding:20px; background:#fff; border-radius:8px;">Please <a href="login.html" style="text-decoration:underline;">log in</a> to chat with support.</p>';
+        chatMessages.innerHTML = '<p style="text-align:center; padding:20px; background:#fff; border-radius:8px;">Please <a href="login.html" style="text-decoration:underline;">log in</a> to chat.</p>';
         chatInput.disabled = true; chatSend.disabled = true;
         return;
       }
       
       chatUser = user;
 
-      const { data: msgs } = await supabaseClient
-        .from('chat_messages')
-        .select('*')
-        .eq('user_id', chatUser.id)
-        .order('created_at', { ascending: true });
-
-      if (msgs && msgs.length > 0) msgs.forEach(appendMessage);
-      
+      const { data: msgs } = await supabaseClient.from('chat_messages').select('*').eq('user_id', chatUser.id).order('created_at', { ascending: true });
+      if (msgs) msgs.forEach(appendMessage);
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
-      chatChannel = supabaseClient
-        .channel('customer-chat-page')
-        .on('postgres_changes', { 
-          event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `user_id=eq.${chatUser.id}`
-        }, payload => {
-          if (payload.new.sender === 'admin') {
-            appendMessage(payload.new);
-            playNotificationSound();
-          }
-        })
-        .subscribe();
-
-      updateChannel = supabaseClient
-        .channel('customer-chat-updates')
-        .on('postgres_changes', {
-          event: 'UPDATE', schema: 'public', table: 'chat_messages', filter: `user_id=eq.${chatUser.id}`
-        }, payload => {
-          const msgId = payload.new.id;
-          const wrapper = document.querySelector(`[data-msg-id="${msgId}"]`);
-          if (wrapper) {
-            const tick = wrapper.querySelector('.wa-tick');
-            if (tick && payload.new.sender === 'customer') tick.innerHTML = '✓✓';
-          }
-        })
-        .subscribe();
+      supabaseClient.channel('customer-chat-page')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `user_id=eq.${chatUser.id}` }, payload => {
+          if (payload.new.sender === 'admin') appendMessage(payload.new);
+        }).subscribe();
     }
 
     function appendMessage(msg) {
       const time = new Date(msg.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const tickHtml = msg.sender === 'customer' ? `<span class="wa-tick">${msg.is_read ? '✓✓' : '✓'}</span>` : '';
       
       const div = document.createElement('div');
       div.className = `wa-msg ${msg.sender}`;
-      div.dataset.msgId = msg.id;
-      
-      let tickHtml = msg.sender === 'customer' ? `<span class="wa-tick">${msg.is_read ? '✓✓' : '✓'}</span>` : '';
-      
-      let mediaHtml = '';
-      if (msg.image_url) {
-        if (msg.image_url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
-            mediaHtml = `<img src="${msg.image_url}" class="wa-img" onclick="window.open('${msg.image_url}', '_blank')">`;
-        } else {
-            const fileName = msg.image_url.split('/').pop().split('?')[0];
-            const fileExt = fileName.split('.').pop().toUpperCase();
-            mediaHtml = `
-              <div onclick="downloadFile('${msg.image_url}', '${fileName}')" class="wa-doc" style="cursor:pointer;">
-                <div class="wa-doc-icon">${fileExt}</div>
-                <div class="wa-doc-info">
-                  <div class="wa-doc-name">${fileName}</div>
-                  <div class="wa-doc-size" style="color: #00a884; font-weight: bold;">⬇ Click to download</div>
-                </div>
-              </div>
-            `;
-        }
-      }
-      
       div.innerHTML = `
-        ${mediaHtml}
-        <div class="msg-content">
-          ${msg.message ? `<div>${msg.message}</div>` : ''}
-          <span class="wa-time">${time}${tickHtml}</span>
-        </div>
+        ${msg.message ? `<div>${formatLinks(msg.message)}</div>` : ''}
+        <span class="wa-time">${time}${tickHtml}</span>
       `;
       
       chatMessages.appendChild(div);
       chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-
-    async function downloadFile(url, filename) {
-      try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = blobUrl;
-        a.download = filename; 
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(blobUrl);
-        document.body.removeChild(a);
-      } catch (error) {
-        alert("Failed to download file. Please try again.");
-      }
     }
 
     chatSend.addEventListener('click', async () => {
@@ -330,80 +130,6 @@
     });
 
     chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') chatSend.click(); });
-
-    imageUpload.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file || !chatUser) return;
-
-      pendingFile = file;
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        previewImage.src = event.target.result;
-        previewCaption.value = '';
-        previewModal.style.display = 'flex';
-        previewCaption.focus();
-      };
-      reader.readAsDataURL(file);
-      imageUpload.value = ''; 
-    });
-
-    function closePreview() {
-      previewModal.style.display = 'none';
-      pendingFile = null;
-    }
-
-    async function sendPreviewedImage() {
-      if (!pendingFile || !chatUser) return;
-
-      const localUrl = URL.createObjectURL(pendingFile);
-      const caption = previewCaption.value.trim();
-      
-      appendMessage({
-        id: 'temp-' + Date.now(),
-        sender: 'customer',
-        message: caption,
-        image_url: localUrl,
-        created_at: new Date().toISOString(),
-        is_read: false
-      });
-
-      closePreview();
-
-      const fileExt = pendingFile.name.split('.').pop();
-      const fileName = `${chatUser.id}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabaseClient.storage.from('chat-images').upload(fileName, pendingFile);
-
-      if (!uploadError) {
-        const { data: urlData } = supabaseClient.storage.from('chat-images').getPublicUrl(fileName);
-        await supabaseClient.from('chat_messages').insert({
-          user_id: chatUser.id, sender: 'customer', message: caption, image_url: urlData.publicUrl, is_read: false
-        });
-      }
-    }
-
-    documentUpload.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file || !chatUser) return;
-
-      documentUpload.value = ''; 
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${chatUser.id}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabaseClient.storage.from('chat-images').upload(fileName, file);
-
-      if (!uploadError) {
-        const { data: urlData } = supabaseClient.storage.from('chat-images').getPublicUrl(fileName);
-        const { data: newMsg } = await supabaseClient.from('chat_messages').insert({
-          user_id: chatUser.id, sender: 'customer', message: '', image_url: urlData.publicUrl, is_read: false
-        }).select().single();
-        
-        if (newMsg) appendMessage(newMsg);
-      } else {
-        alert('Failed to upload document.');
-      }
-    });
 
     initChat();
   </script>
