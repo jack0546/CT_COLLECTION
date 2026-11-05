@@ -6,53 +6,119 @@
   <title>Live Chat — Admin</title>
   <link rel="stylesheet" href="/css/admin.css" />
   <style>
-    .chat-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; height: calc(100vh - 120px); }
-    @media (max-width: 768px) { .chat-layout { grid-template-columns: 1fr; height: auto; } }
+    html, body { height: 100vh; margin: 0; padding: 0; overflow: hidden; }
+    .admin-shell { display: flex; height: 100vh; overflow: hidden; }
+    .admin-main { flex: 1; display: flex; flex-direction: column; padding: 0 !important; height: 100vh; }
     
-    /* WhatsApp Style User List */
-    .user-list { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; overflow-y: auto; }
-    .user-item { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; text-decoration: none; color: inherit; }
-    .user-item:hover, .user-item.active { background: #f0fdf4; }
+    .wa-container { display: grid; grid-template-columns: 350px 1fr; flex: 1; background: #f0f2f5; overflow: hidden; min-height: 0; }
+
+    /* Left Sidebar */
+    .wa-sidebar { background: #fff; border-right: 1px solid #d1d7db; display: flex; flex-direction: column; height: 100%; }
+    .wa-sidebar-header { padding: 15px; background: #f0f2f5; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #d1d7db; flex-shrink: 0; }
+    .wa-search { margin: 10px 15px; padding: 8px 12px; background: #f0f2f5; border-radius: 8px; font-size: 14px; border: none; outline: none; flex-shrink: 0; }
+    .wa-chat-list { flex: 1; overflow-y: auto; }
     
-    .user-info { flex: 1; min-width: 0; }
-    .user-name { font-size: 15px; font-weight: 600; color: #111; margin-bottom: 3px; }
-    .user-last-msg { font-size: 13px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+    .wa-chat-item { display: flex; padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; }
+    .wa-chat-item:hover, .wa-chat-item.active { background: #f0f2f5; }
+    .wa-avatar { width: 49px; height: 49px; border-radius: 50%; background: #dfe5e7; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; color: #555; margin-right: 15px; flex-shrink: 0; }
+    .wa-chat-info { flex: 1; min-width: 0; }
+    .wa-chat-name { font-size: 16px; color: #111b21; margin-bottom: 3px; font-weight: 500; }
+    .wa-chat-msg { font-size: 13px; color: #667781; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .wa-chat-meta { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+    .wa-chat-time { font-size: 12px; color: #667781; margin-bottom: 5px; }
+    .wa-badge { background: #25d366; color: #fff; border-radius: 50%; min-width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; }
+
+    /* Right Chat Area */
+    .wa-main { display: flex; flex-direction: column; background: #efeae2; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; height: 100%; overflow: hidden; }
+    .wa-main-header { padding: 10px 20px; background: #f0f2f5; border-bottom: 1px solid #d1d7db; display: flex; align-items: center; gap: 15px; flex-shrink: 0; }
+    .wa-messages { flex: 1; overflow-y: auto; padding: 20px 50px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
     
-    .user-meta { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-    .user-time { font-size: 11px; color: #999; }
-    .unread-badge { background: #22c55e; color: #fff; border-radius: 50%; min-width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; padding: 0 6px; }
-    
-    /* Chat Area */
-    .chat-area { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; display: flex; flex-direction: column; }
-    .chat-header { padding: 15px; border-bottom: 1px solid #eee; font-weight: bold; font-size: 16px; }
-    .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #efeae2; }
-    .msg { padding: 10px 14px; border-radius: 8px; max-width: 70%; word-break: break-word; font-size: 14px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
-    .msg.customer { background: #fff; align-self: flex-start; color: #333; border-top-left-radius: 0; }
-    .msg.admin { background: #dcf8c6; align-self: flex-end; color: #333; border-top-right-radius: 0; }
-    .chat-input-area { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; background: #f0f2f5; }
-    .empty-state { padding: 40px; text-align: center; color: #666; }
+    .wa-msg { max-width: 65%; padding: 4px; border-radius: 8px; font-size: 14px; line-height: 1.4; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); word-wrap: break-word; }
+    .wa-msg.customer { background: #fff; align-self: flex-start; border-top-left-radius: 0; color: #111b21; }
+    .wa-msg.admin { background: #d9fdd3; align-self: flex-end; border-top-right-radius: 0; color: #111b21; }
+    .wa-img { width: 100%; max-width: 300px; max-height: 300px; object-fit: cover; border-radius: 6px; cursor: pointer; display: block; }
+    .msg-content { padding: 4px 8px; }
+    .wa-time { font-size: 11px; color: #667781; float: right; margin-left: 10px; margin-top: 5px; }
+
+    /* Input Area */
+    .wa-input-area { padding: 10px 20px; background: #f0f2f5; display: flex; gap: 10px; align-items: center; border-top: 1px solid #d1d7db; flex-shrink: 0; }
+    .wa-icon-btn { background: none; border: none; cursor: pointer; color: #54656f; padding: 5px; display: flex; align-items: center; justify-content: center; }
+    .wa-icon-btn:hover { color: #00a884; }
+    .wa-input-area input { flex: 1; padding: 12px 15px; border-radius: 8px; border: none; outline: none; font-size: 15px; }
+    .wa-send-btn { background: #00a884; color: #fff; border: none; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .wa-send-btn:hover { background: #008f72; }
+
+    /* Image Preview Modal */
+    .preview-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 10000; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+    .preview-content { background: #fff; border-radius: 12px; overflow: hidden; width: 100%; max-width: 500px; display: flex; flex-direction: column; }
+    .preview-img { width: 100%; max-height: 50vh; object-fit: contain; background: #000; }
+    .preview-footer { padding: 15px; background: #f0f2f5; }
+    .preview-footer input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 10px; }
+    .preview-actions { display: flex; justify-content: flex-end; gap: 10px; }
+    .btn-cancel { background: #ccc; color: #333; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+    .btn-send { background: #00a884; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #667781; text-align: center; width: 100%;}
+    @media (max-width: 768px) { .wa-container { grid-template-columns: 1fr; } .wa-sidebar { display: none; } .wa-messages { padding: 15px; } }
   </style>
 </head>
 <body>
   <div class="admin-shell">
     <main class="admin-main">
-      <div class="admin-topbar"><h1>Live Customer Chat</h1></div>
+      <div class="admin-topbar" style="padding: 15px 20px; background: #fff; border-bottom: 1px solid #eee; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;">
+        <h1 style="margin: 0; font-size: 20px;">Live Chat</h1>
+        <button onclick="logout()" class="btn btn-light" style="font-size: 12px; padding: 5px 10px;">Sign Out</button>
+      </div>
       
-      <div class="chat-layout">
-        <div class="user-list" id="user-list">
-          <p style="padding:20px; color:#666;">Loading chats...</p>
+      <div class="wa-container">
+        <div class="wa-sidebar">
+          <div class="wa-sidebar-header"><strong>Chats</strong><span>👤</span></div>
+          <input type="text" class="wa-search" placeholder="Search or start a new chat" disabled>
+          <div class="wa-chat-list" id="user-list">
+            <p style="padding:20px; text-align:center; color:#666;">Loading chats...</p>
+          </div>
         </div>
-        
-        <div class="chat-area" id="chat-area" style="display:none;">
-          <div class="chat-header" id="chat-header">Select a customer</div>
-          <div class="chat-messages" id="chat-messages"></div>
-          <div class="chat-input-area">
-            <input id="admin-chat-input" type="text" placeholder="Type your reply..." style="flex:1; padding:10px; border:1px solid #ddd; border-radius:6px;">
-            <button id="admin-chat-send" class="btn btn-dark">Send</button>
+
+        <div class="wa-main">
+          <div class="wa-main-header" id="chat-header" style="display:none;">
+            <div class="wa-avatar" id="header-avatar" style="width:40px; height:40px; font-size:16px;">C</div>
+            <strong id="chat-header-name">Customer</strong>
+          </div>
+          
+          <div class="wa-messages" id="chat-messages">
+            <div class="empty-state" style="width:100%;">
+              <h2>Great Addesam Admin</h2>
+              <p>Select a chat to start messaging</p>
+            </div>
+          </div>
+
+          <div class="wa-input-area" id="chat-input-area" style="display:none;">
+            <input type="file" id="admin-image-upload" accept="image/*" style="display:none;">
+            <button class="wa-icon-btn" onclick="document.getElementById('admin-image-upload').click()">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5-7l-3 3.72L9 13l-3 4h12l-4-5z"/></svg>
+            </button>
+            
+            <input id="admin-chat-input" type="text" placeholder="Type a message">
+            <button class="wa-send-btn" id="admin-chat-send">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
           </div>
         </div>
       </div>
     </main>
+  </div>
+
+  <div class="preview-modal" id="preview-modal">
+    <div class="preview-content">
+      <img id="preview-image" class="preview-img" src="" alt="Preview">
+      <div class="preview-footer">
+        <input type="text" id="preview-caption" placeholder="Add a caption...">
+        <div class="preview-actions">
+          <button class="btn-cancel" onclick="closePreview()">Cancel</button>
+          <button class="btn-send" id="preview-send-btn" onclick="sendPreviewedImage()">Send</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -61,6 +127,13 @@
   <script>
     let activeUserId = null;
     let adminChannel = null;
+    let pendingFile = null;
+
+    const adminImageUpload = document.getElementById('admin-image-upload');
+    const previewModal = document.getElementById('preview-modal');
+    const previewImage = document.getElementById('preview-image');
+    const previewCaption = document.getElementById('preview-caption');
+    const previewSendBtn = document.getElementById('preview-send-btn');
 
     function playNotificationSound() {
       try {
@@ -78,32 +151,26 @@
       } catch (e) {}
     }
 
-    // PWA App Badge Logic
-    function updateAppBadge(count) {
-      if ('setAppBadge' in navigator) {
-        if (count > 0) {
-          navigator.setAppBadge(count).catch(e => console.log("App badge failed", e));
-        } else {
-          navigator.clearAppBadge();
-        }
-      }
-    }
-
     async function loadUsers() {
       const { data, error } = await supabaseClient
         .from('chat_messages')
-        .select('user_id, created_at, message, sender, is_read')
+        .select('user_id, created_at, message, sender, is_read, image_url')
         .order('created_at', { ascending: false });
 
       if (error || !data) return;
 
-      // 1. Group by user and find latest message
-      const uniqueUsers = [...new Map(data.map(m => [m.user_id, m])).values()];
+      const latestMessages = new Map();
+      data.forEach(msg => {
+        if (!latestMessages.has(msg.user_id)) {
+          latestMessages.set(msg.user_id, msg);
+        }
+      });
+
+      const uniqueUsers = Array.from(latestMessages.values());
       const list = document.getElementById('user-list');
       
       if (uniqueUsers.length === 0) {
-        list.innerHTML = '<p class="empty-state">No active chats right now.</p>';
-        updateAppBadge(0);
+        list.innerHTML = '<p style="padding:20px; text-align:center; color:#666;">No active chats.</p>';
         return;
       }
 
@@ -111,45 +178,44 @@
       const { data: profiles } = await supabaseClient.from('profiles').select('id, first_name, last_name, email').in('id', userIds);
       const profileMap = new Map(profiles?.map(p => [p.id, p]));
 
-      // 2. Count unread messages
-      let totalUnread = 0;
-      const unreadCounts = {};
-      data.forEach(m => {
-        if (m.sender === 'customer' && !m.is_read) {
-          unreadCounts[m.user_id] = (unreadCounts[m.user_id] || 0) + 1;
-          totalUnread++;
-        }
-      });
-
-      // 3. Update the App Icon Badge
-      updateAppBadge(totalUnread);
-
-      // 4. Render the list (WhatsApp Style)
       list.innerHTML = uniqueUsers.map(u => {
         const p = profileMap.get(u.user_id) || {};
         const name = `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.email || 'Customer';
-        const unread = unreadCounts[u.user_id] || 0;
-        const time = new Date(u.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        const initial = name.charAt(0).toUpperCase();
         
+        const unread = data.filter(m => m.user_id === u.user_id && m.sender === 'customer' && !m.is_read).length;
+        const time = new Date(u.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+        let previewText = u.message || '';
+        if (u.image_url) previewText = u.message ? '📷 ' + u.message : '📷 Photo';
+
+        const msgPrefix = u.sender === 'admin' ? '<span style="color:#00a884;">✓ </span>' : '';
+
         return `
-          <div class="user-item ${activeUserId === u.user_id ? 'active' : ''}" onclick="openChat('${u.user_id}', '${name.replace(/'/g, "\\'")}')">
-            <div class="user-info">
-              <div class="user-name">${name}</div>
-              <div class="user-last-msg">${u.sender === 'admin' ? 'You: ' : ''}${u.message}</div>
+          <div class="wa-chat-item ${activeUserId === u.user_id ? 'active' : ''}" onclick="openChat('${u.user_id}', '${name.replace(/'/g, "\\'")}', '${initial}')">
+            <div class="wa-avatar">${initial}</div>
+            <div class="wa-chat-info">
+              <div class="wa-chat-name">${name}</div>
+              <div class="wa-chat-msg">${msgPrefix}${previewText}</div>
             </div>
-            <div class="user-meta">
-              <div class="user-time">${time}</div>
-              ${unread > 0 ? `<div class="unread-badge">${unread}</div>` : ''}
+            <div class="wa-chat-meta">
+              <div class="wa-chat-time">${time}</div>
+              ${unread > 0 ? `<div class="wa-badge">${unread}</div>` : ''}
             </div>
           </div>
         `;
       }).join('');
     }
 
-    async function openChat(userId, userName) {
+    async function openChat(userId, userName, initial) {
       activeUserId = userId;
-      document.getElementById('chat-area').style.display = 'flex';
-      document.getElementById('chat-header').textContent = userName;
+      
+      document.getElementById('chat-input-area').style.display = 'flex';
+      document.getElementById('chat-header').style.display = 'flex';
+      document.getElementById('chat-header-name').textContent = userName;
+      document.getElementById('header-avatar').textContent = initial;
+      
+      document.querySelectorAll('.wa-chat-item').forEach(el => el.classList.remove('active'));
 
       const { data: msgs } = await supabaseClient
         .from('chat_messages')
@@ -161,7 +227,8 @@
       container.innerHTML = '';
       msgs?.forEach(m => appendAdminMsg(m));
 
-      // Mark as read
+      container.scrollTop = container.scrollHeight;
+
       await supabaseClient
         .from('chat_messages')
         .update({ is_read: true })
@@ -169,7 +236,7 @@
         .eq('sender', 'customer')
         .eq('is_read', false);
         
-      loadUsers(); // This will also reset the App Badge
+      loadUsers(); 
 
       if (adminChannel) supabaseClient.removeChannel(adminChannel);
       adminChannel = supabaseClient
@@ -188,9 +255,27 @@
 
     function appendAdminMsg(msg) {
       const container = document.getElementById('chat-messages');
+      const emptyState = container.querySelector('.empty-state');
+      if (emptyState) emptyState.remove();
+
+      const time = new Date(msg.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      
       const div = document.createElement('div');
-      div.className = `msg ${msg.sender}`;
-      div.textContent = msg.message;
+      div.className = `wa-msg ${msg.sender}`;
+      
+      let imageHtml = '';
+      if (msg.image_url) {
+        imageHtml = `<img src="${msg.image_url}" class="wa-img" onclick="window.open('${msg.image_url}', '_blank')">`;
+      }
+      
+      div.innerHTML = `
+        ${imageHtml}
+        <div class="msg-content">
+          ${msg.message ? `<div>${msg.message}</div>` : ''}
+          <span class="wa-time">${time}</span>
+        </div>
+      `;
+      
       container.appendChild(div);
       container.scrollTop = container.scrollHeight;
     }
@@ -201,29 +286,100 @@
       if (!text || !activeUserId) return;
       input.value = '';
       
-      await supabaseClient.from('chat_messages').insert({
+      const { data: newMsg } = await supabaseClient.from('chat_messages').insert({
         user_id: activeUserId, sender: 'admin', message: text, is_read: false
-      });
+      }).select().single();
       
-      appendAdminMsg({ sender: 'admin', message: text });
-      loadUsers(); // Updates the sidebar with "You: message"
+      if (newMsg) {
+        appendAdminMsg(newMsg);
+        loadUsers();
+      }
     });
 
     document.getElementById('admin-chat-input').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') document.getElementById('admin-chat-send').click();
     });
 
-    // Load users initially
+    // --- IMAGE PREVIEW LOGIC ---
+    adminImageUpload.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file || !activeUserId) return;
+
+      pendingFile = file;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        previewImage.src = event.target.result;
+        previewCaption.value = '';
+        previewModal.style.display = 'flex';
+        previewCaption.focus();
+      };
+      reader.readAsDataURL(file);
+      adminImageUpload.value = ''; 
+    });
+
+    function closePreview() {
+      previewModal.style.display = 'none';
+      pendingFile = null;
+    }
+
+    // THE OPTIMISTIC UI FIX
+    async function sendPreviewedImage() {
+      if (!pendingFile || !activeUserId) return;
+
+      const localUrl = URL.createObjectURL(pendingFile);
+      const caption = previewCaption.value.trim();
+      
+      // 1. Instantly show the image
+      appendAdminMsg({
+        sender: 'admin',
+        message: caption,
+        image_url: localUrl,
+        created_at: new Date().toISOString()
+      });
+
+      closePreview();
+
+      // 2. Upload in background
+      const fileExt = pendingFile.name.split('.').pop();
+      const fileName = `${activeUserId}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabaseClient.storage
+        .from('chat-images')
+        .upload(fileName, pendingFile);
+
+      if (!uploadError) {
+        const { data: urlData } = supabaseClient.storage.from('chat-images').getPublicUrl(fileName);
+        
+        await supabaseClient.from('chat_messages').insert({
+          user_id: activeUserId, 
+          sender: 'admin', 
+          message: caption, 
+          image_url: urlData.publicUrl, 
+          is_read: false
+        });
+        
+        loadUsers(); 
+      } else {
+        alert('Failed to upload image.');
+      }
+    }
+
+    async function logout() {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    }
+
     (async () => {
       await requireAdmin();
       await mountAdminShell('chat');
       await loadUsers();
-
-      // Listen for ANY new message to update the sidebar & App Badge in real-time
+      
       supabaseClient
         .channel('admin-global-chat')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, payload => {
-          loadUsers(); 
+          if (!activeUserId || payload.new.user_id !== activeUserId) {
+             loadUsers();
+          }
         })
         .subscribe();
     })();

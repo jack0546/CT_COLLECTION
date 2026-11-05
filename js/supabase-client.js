@@ -149,7 +149,7 @@ async function listenForUnreadChats() {
       }
     })
     .subscribe();
-}
+} 
 
 // Start the listener after a short delay to ensure Supabase is loaded
 setTimeout(listenForUnreadChats, 1000);
