@@ -45,7 +45,7 @@ async function mountAdminShell(active) {
   const shell = document.querySelector('.admin-shell');
   if (!shell) return;
 
-  // 🛑 PREVENT DUPLICATES: If the sidebar is already there, stop.
+  // PREVENT DUPLICATES: If the sidebar is already there, stop.
   if (document.getElementById('admin-sidebar')) return;
 
   const mobileBar = document.createElement('div');
@@ -68,6 +68,7 @@ async function mountAdminShell(active) {
       <a href="orders.html"     class="${active==='orders'?'active':''}">Orders</a>
       <a href="customers.html"  class="${active==='customers'?'active':''}">Customers</a>
       <a href="reviews.html"    class="${active==='reviews'?'active':''}">Reviews</a>
+      <a href="chat.html"       class="${active==='chat'?'active':''}">Live Chat</a> <!-- ADDED THIS -->
       <a href="settings.html"   class="${active==='settings'?'active':''}">Store Settings</a>
       <a href="../index.html" target="_blank" rel="noopener">View Storefront ↗</a>
     </nav>

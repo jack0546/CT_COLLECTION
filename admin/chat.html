@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Live Chat — Admin</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+  <style>
+    .chat-layout { display: grid; grid-template-columns: 280px 1fr; gap: 20px; height: calc(100vh - 120px); }
+    @media (max-width: 768px) { .chat-layout { grid-template-columns: 1fr; height: auto; } }
+    
+    .user-list { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; overflow-y: auto; }
+    .user-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .user-item:hover, .user-item.active { background: #f0fdf4; }
+    .user-item strong { font-size: 14px; display: block; }
+    .user-item span { font-size: 12px; color: #666; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+    
+    .chat-area { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; display: flex; flex-direction: column; }
+    .chat-header { padding: 15px; border-bottom: 1px solid #eee; font-weight: bold; }
+    .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #fafafa; }
+    .msg { padding: 10px 14px; border-radius: 8px; max-width: 70%; word-break: break-word; font-size: 14px; }
+    .msg.customer { background: #e5e5e5; align-self: flex-start; color: #333; }
+    .msg.admin { background: #16a34a; align-self: flex-end; color: #fff; }
+    .chat-input-area { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; }
+    .empty-state { padding: 40px; text-align: center; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="admin-shell">
+    <main class="admin-main">
+      <div class="admin-topbar"><h1>Live Customer Chat</h1></div>
+      
+      <div class="chat-layout">
+        <div class="user-list" id="user-list">
+          <p style="padding:20px; color:#666;">Loading chats...</p>
+        </div>
+        
+        <div class="chat-area" id="chat-area" style="display:none;">
+          <div class="chat-header" id="chat-header">Select a customer</div>
+          <div class="chat-messages" id="chat-messages"></div>
+          <div class="chat-input-area">
+            <input id="admin-chat-input" type="text" placeholder="Type your reply..." style="flex:1; padding:10px; border:1px solid #ddd; border-radius:6px;">
+            <button id="admin-chat-send" class="btn btn-dark">Send</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/admin-auth.js"></script>
+  <script>
+    let activeUserId = null;
+    let adminChannel = null;
+
+    async function loadUsers() {
+      // Get unique users who have messages
+      const { data, error } = await supabaseClient
+        .from('chat_messages')
+        .select('user_id, created_at, message')
+        .order('created_at', { ascending: false });
+
+      if (error || !data) return;
+
+      // Get the latest message per user
+      const uniqueUsers = [...new Map(data.map(m => [m.user_id, m])).values()];
+      
+      const list = document.getElementById('user-list');
+      if (uniqueUsers.length === 0) {
+        list.innerHTML = '<p class="empty-state">No active chats right now.</p>';
+        return;
+      }
+
+      // Fetch profile names
+      const userIds = uniqueUsers.map(u => u.user_id);
+      const { data: profiles } = await supabaseClient.from('profiles').select('id, first_name, last_name, email').in('id', userIds);
+      const profileMap = new Map(profiles?.map(p => [p.id, p]));
+
+      list.innerHTML = uniqueUsers.map(u => {
+        const p = profileMap.get(u.user_id) || {};
+        const name = `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.email || 'Customer';
+        return `
+          <div class="user-item ${activeUserId === u.user_id ? 'active' : ''}" onclick="openChat('${u.user_id}', '${name.replace(/'/g, "\\'")}')">
+            <div>
+              <strong>${name}</strong>
+              <span>${u.message}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function openChat(userId, userName) {
+      activeUserId = userId;
+      document.getElementById('chat-area').style.display = 'flex';
+      document.getElementById('chat-header').textContent = userName;
+      
+      // Highlight active user
+      document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active'));
+
+      const { data: msgs } = await supabaseClient
+        .from('chat_messages')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true });
+
+      const container = document.getElementById('chat-messages');
+      container.innerHTML = '';
+      msgs?.forEach(m => appendAdminMsg(m));
+
+      // Subscribe to new messages
+      if (adminChannel) supabaseClient.removeChannel(adminChannel);
+      adminChannel = supabaseClient
+        .channel('admin-chat-' + userId)
+        .on('postgres_changes', { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'chat_messages',
+          filter: `user_id=eq.${userId}`
+        }, payload => {
+          if (payload.new.sender === 'customer') {
+            appendAdminMsg(payload.new);
+          }
+        })
+        .subscribe();
+    }
+
+    function appendAdminMsg(msg) {
+      const container = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = `msg ${msg.sender}`;
+      div.textContent = msg.message;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    document.getElementById('admin-chat-send').addEventListener('click', async () => {
+      const input = document.getElementById('admin-chat-input');
+      const text = input.value.trim();
+      if (!text || !activeUserId) return;
+      input.value = '';
+      
+      await supabaseClient.from('chat_messages').insert({
+        user_id: activeUserId,
+        sender: 'admin',
+        message: text
+      });
+      
+      appendAdminMsg({ sender: 'admin', message: text });
+    });
+
+    document.getElementById('admin-chat-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') document.getElementById('admin-chat-send').click();
+    });
+
+    (async () => {
+      await requireAdmin();
+      await mountAdminShell('chat');
+      await loadUsers();
+    })();
+  </script>
+</body>
+</html>
