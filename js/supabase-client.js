@@ -106,3 +106,50 @@ async function loadCategories() {
   const { data } = await supabaseClient.from('categories').select('*').order('sort_order');
   return data || [];
 }
+
+/* ------------------------------------------------------------------
+   GLOBAL CHAT NOTIFICATION LISTENER
+------------------------------------------------------------------ */
+async function listenForUnreadChats() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) return;
+
+  // Don't run this listener if we are already on the chat page
+  if (window.location.pathname.includes('chat.html')) return;
+
+  // 1. Check how many unread messages the user has right now
+  const checkUnread = async () => {
+    const { count } = await supabaseClient
+      .from('chat_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('sender', 'admin')
+      .eq('is_read', false);
+
+    // Update the App Icon Badge
+    if ('setAppBadge' in navigator) {
+      if (count > 0) navigator.setAppBadge(count).catch(() => {});
+      else navigator.clearAppBadge();
+    }
+  };
+
+  await checkUnread();
+
+  // 2. Listen for any NEW admin messages coming in
+  supabaseClient
+    .channel('global-user-chat')
+    .on('postgres_changes', { 
+      event: 'INSERT', 
+      schema: 'public', 
+      table: 'chat_messages', 
+      filter: `user_id=eq.${user.id}` 
+    }, payload => {
+      if (payload.new.sender === 'admin') {
+        checkUnread();
+      }
+    })
+    .subscribe();
+}
+
+// Start the listener after a short delay to ensure Supabase is loaded
+setTimeout(listenForUnreadChats, 1000);

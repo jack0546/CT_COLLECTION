@@ -7,79 +7,20 @@
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/styles.css" />
   <style>
-    .chat-container {
-      max-width: 800px;
-      margin: 40px auto;
-      height: calc(100vh - 150px);
-      display: flex;
-      flex-direction: column;
-      background: #fff;
-      border: 1px solid #e5e5e5;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    .chat-header {
-      padding: 20px;
-      background: #0a0a0a;
-      color: #fff;
-      font-weight: bold;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .chat-messages {
-      flex: 1;
-      padding: 20px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      background: #fafafa;
-    }
-    .msg {
-      padding: 10px 15px;
-      border-radius: 8px;
-      max-width: 75%;
-      word-break: break-word;
-      font-size: 14px;
-      line-height: 1.4;
-    }
-    .msg.customer {
-      background: #dcfce7;
-      color: #166534;
-      align-self: flex-end;
-      border-bottom-right-radius: 2px;
-    }
-    .msg.admin {
-      background: #f3f4f6;
-      color: #333;
-      align-self: flex-start;
-      border-bottom-left-radius: 2px;
-    }
-    .chat-input-area {
-      padding: 15px 20px;
-      border-top: 1px solid #eee;
-      display: flex;
-      gap: 10px;
-      background: #fff;
-    }
-    .chat-input-area input {
-      flex: 1;
-      padding: 12px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 14px;
-    }
-    .chat-input-area button {
-      padding: 12px 24px;
-      background: #16a34a;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+    .chat-container { max-width: 800px; margin: 40px auto; height: calc(100vh - 150px); display: flex; flex-direction: column; background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .chat-header { padding: 20px; background: #0a0a0a; color: #fff; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+    .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #efeae2; }
+    .msg-wrapper { display: flex; flex-direction: column; max-width: 75%; }
+    .msg-wrapper.customer { align-self: flex-end; align-items: flex-end; }
+    .msg-wrapper.admin { align-self: flex-start; align-items: flex-start; }
+    .msg { padding: 10px 15px; border-radius: 8px; word-break: break-word; font-size: 14px; line-height: 1.4; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+    .msg.customer { background: #dcf8c6; color: #333; border-top-right-radius: 0; }
+    .msg.admin { background: #fff; color: #333; border-top-left-radius: 0; }
+    .status-tick { font-size: 11px; margin-top: 4px; color: #737373; }
+    .status-tick.read { color: #3b82f6; font-weight: bold; }
+    .chat-input-area { padding: 15px 20px; border-top: 1px solid #eee; display: flex; gap: 10px; background: #f0f2f5; }
+    .chat-input-area input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+    .chat-input-area button { padding: 12px 24px; background: #16a34a; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
     .chat-input-area button:hover { background: #15803d; }
   </style>
 </head>
@@ -88,12 +29,8 @@
 
   <main class="container" style="padding: 0 16px;">
     <div class="chat-container">
-      <div class="chat-header">
-        <span>Chat with Support</span>
-      </div>
-      <div class="chat-messages" id="chat-messages">
-        <p class="muted" style="text-align:center; margin-top:20px;">Loading messages...</p>
-      </div>
+      <div class="chat-header"><span>Chat with Support</span></div>
+      <div class="chat-messages" id="chat-messages"></div>
       <div class="chat-input-area">
         <input id="chat-input" type="text" placeholder="Type a message..." />
         <button id="chat-send">Send</button>
@@ -111,23 +48,46 @@
   <script src="js/footer.js"></script>
   <script>
     let chatChannel = null;
+    let updateChannel = null;
     let chatUser = null;
     const chatMessages = document.getElementById('chat-messages');
     const chatInput = document.getElementById('chat-input');
     const chatSend = document.getElementById('chat-send');
 
+    function playNotificationSound() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const osc1 = ctx.createOscillator(); const gain1 = ctx.createGain();
+        osc1.type = 'sine'; osc1.frequency.setValueAtTime(880, ctx.currentTime); 
+        gain1.gain.setValueAtTime(0.3, ctx.currentTime); gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        osc1.connect(gain1); gain1.connect(ctx.destination); osc1.start(ctx.currentTime); osc1.stop(ctx.currentTime + 0.3);
+        const osc2 = ctx.createOscillator(); const gain2 = ctx.createGain();
+        osc2.type = 'sine'; osc2.frequency.setValueAtTime(660, ctx.currentTime + 0.1); 
+        gain2.gain.setValueAtTime(0.3, ctx.currentTime + 0.1); gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        osc2.connect(gain2); gain2.connect(ctx.destination); osc2.start(ctx.currentTime + 0.1); osc2.stop(ctx.currentTime + 0.4);
+      } catch (e) {}
+    }
+
+    function updateAppBadge(count) {
+      if ('setAppBadge' in navigator) {
+        if (count > 0) navigator.setAppBadge(count).catch(() => {});
+        else navigator.clearAppBadge();
+      }
+    }
+
     async function initChat() {
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (!user) {
         chatMessages.innerHTML = '<p style="text-align:center; padding:20px;">Please <a href="login.html" style="text-decoration:underline;">log in</a> to chat with support.</p>';
-        chatInput.disabled = true;
-        chatSend.disabled = true;
+        chatInput.disabled = true; chatSend.disabled = true;
         return;
       }
       
       chatUser = user;
+      updateAppBadge(0); // Clear app badge since user is now viewing the chat
 
-      // Load history
       const { data: msgs } = await supabaseClient
         .from('chat_messages')
         .select('*')
@@ -138,37 +98,60 @@
       if (msgs && msgs.length > 0) {
         msgs.forEach(appendMessage);
       } else {
-        chatMessages.innerHTML = '<p class="muted" style="text-align:center;">Send us a message, we usually reply within minutes.</p>';
+        chatMessages.innerHTML = '<p class="muted" style="text-align:center; margin-top:20px;">Send us a message, we usually reply within minutes.</p>';
       }
 
-      // Subscribe to new messages
       chatChannel = supabaseClient
         .channel('customer-chat-page')
         .on('postgres_changes', { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'chat_messages',
-          filter: `user_id=eq.${chatUser.id}`
+          event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `user_id=eq.${chatUser.id}`
         }, payload => {
           if (payload.new.sender === 'admin') {
-            // Remove the "send us a message" text if it exists
-            const emptyMsg = chatMessages.querySelector('.muted');
-            if (emptyMsg) emptyMsg.remove();
-            
+            const emptyMsg = chatMessages.querySelector('.muted'); if (emptyMsg) emptyMsg.remove();
             appendMessage(payload.new);
+            playNotificationSound();
+          }
+        })
+        .subscribe();
+
+      updateChannel = supabaseClient
+        .channel('customer-chat-updates')
+        .on('postgres_changes', {
+          event: 'UPDATE', schema: 'public', table: 'chat_messages', filter: `user_id=eq.${chatUser.id}`
+        }, payload => {
+          const msgId = payload.new.id;
+          const wrapper = document.querySelector(`[data-msg-id="${msgId}"]`);
+          if (wrapper) {
+            const tick = wrapper.querySelector('.status-tick');
+            if (tick && payload.new.sender === 'customer') {
+              tick.innerHTML = '✓✓';
+              tick.classList.add('read');
+            }
           }
         })
         .subscribe();
     }
 
     function appendMessage(msg) {
-      const emptyMsg = chatMessages.querySelector('.muted');
-      if (emptyMsg) emptyMsg.remove();
+      const emptyMsg = chatMessages.querySelector('.muted'); if (emptyMsg) emptyMsg.remove();
 
-      const div = document.createElement('div');
-      div.className = `msg ${msg.sender}`;
-      div.textContent = msg.message;
-      chatMessages.appendChild(div);
+      const wrapper = document.createElement('div');
+      wrapper.className = `msg-wrapper ${msg.sender}`;
+      wrapper.dataset.msgId = msg.id;
+
+      const bubble = document.createElement('div');
+      bubble.className = `msg ${msg.sender}`;
+      bubble.textContent = msg.message;
+      wrapper.appendChild(bubble);
+
+      if (msg.sender === 'customer') {
+        const tick = document.createElement('div');
+        tick.className = `status-tick ${msg.is_read ? 'read' : ''}`;
+        tick.textContent = msg.is_read ? '✓✓' : '✓';
+        wrapper.appendChild(tick);
+      }
+
+      chatMessages.appendChild(wrapper);
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
@@ -177,18 +160,14 @@
       if (!text || !chatUser) return;
       chatInput.value = '';
       
-      await supabaseClient.from('chat_messages').insert({
-        user_id: chatUser.id,
-        sender: 'customer',
-        message: text
-      });
+      const { data: newMsg } = await supabaseClient.from('chat_messages').insert({
+        user_id: chatUser.id, sender: 'customer', message: text, is_read: false
+      }).select().single();
       
-      appendMessage({ sender: 'customer', message: text });
+      if (newMsg) appendMessage(newMsg);
     });
 
-    chatInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') chatSend.click();
-    });
+    chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') chatSend.click(); });
 
     initChat();
   </script>

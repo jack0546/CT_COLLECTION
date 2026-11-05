@@ -6,22 +6,30 @@
   <title>Live Chat — Admin</title>
   <link rel="stylesheet" href="/css/admin.css" />
   <style>
-    .chat-layout { display: grid; grid-template-columns: 280px 1fr; gap: 20px; height: calc(100vh - 120px); }
+    .chat-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; height: calc(100vh - 120px); }
     @media (max-width: 768px) { .chat-layout { grid-template-columns: 1fr; height: auto; } }
     
+    /* WhatsApp Style User List */
     .user-list { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; overflow-y: auto; }
-    .user-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .user-item { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; text-decoration: none; color: inherit; }
     .user-item:hover, .user-item.active { background: #f0fdf4; }
-    .user-item strong { font-size: 14px; display: block; }
-    .user-item span { font-size: 12px; color: #666; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
     
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-size: 15px; font-weight: 600; color: #111; margin-bottom: 3px; }
+    .user-last-msg { font-size: 13px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+    
+    .user-meta { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .user-time { font-size: 11px; color: #999; }
+    .unread-badge { background: #22c55e; color: #fff; border-radius: 50%; min-width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; padding: 0 6px; }
+    
+    /* Chat Area */
     .chat-area { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; display: flex; flex-direction: column; }
-    .chat-header { padding: 15px; border-bottom: 1px solid #eee; font-weight: bold; }
-    .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #fafafa; }
-    .msg { padding: 10px 14px; border-radius: 8px; max-width: 70%; word-break: break-word; font-size: 14px; }
-    .msg.customer { background: #e5e5e5; align-self: flex-start; color: #333; }
-    .msg.admin { background: #16a34a; align-self: flex-end; color: #fff; }
-    .chat-input-area { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; }
+    .chat-header { padding: 15px; border-bottom: 1px solid #eee; font-weight: bold; font-size: 16px; }
+    .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #efeae2; }
+    .msg { padding: 10px 14px; border-radius: 8px; max-width: 70%; word-break: break-word; font-size: 14px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+    .msg.customer { background: #fff; align-self: flex-start; color: #333; border-top-left-radius: 0; }
+    .msg.admin { background: #dcf8c6; align-self: flex-end; color: #333; border-top-right-radius: 0; }
+    .chat-input-area { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; background: #f0f2f5; }
     .empty-state { padding: 40px; text-align: center; color: #666; }
   </style>
 </head>
@@ -54,37 +62,84 @@
     let activeUserId = null;
     let adminChannel = null;
 
+    function playNotificationSound() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const osc1 = ctx.createOscillator(); const gain1 = ctx.createGain();
+        osc1.type = 'sine'; osc1.frequency.setValueAtTime(880, ctx.currentTime); 
+        gain1.gain.setValueAtTime(0.3, ctx.currentTime); gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        osc1.connect(gain1); gain1.connect(ctx.destination); osc1.start(ctx.currentTime); osc1.stop(ctx.currentTime + 0.3);
+        const osc2 = ctx.createOscillator(); const gain2 = ctx.createGain();
+        osc2.type = 'sine'; osc2.frequency.setValueAtTime(660, ctx.currentTime + 0.1); 
+        gain2.gain.setValueAtTime(0.3, ctx.currentTime + 0.1); gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        osc2.connect(gain2); gain2.connect(ctx.destination); osc2.start(ctx.currentTime + 0.1); osc2.stop(ctx.currentTime + 0.4);
+      } catch (e) {}
+    }
+
+    // PWA App Badge Logic
+    function updateAppBadge(count) {
+      if ('setAppBadge' in navigator) {
+        if (count > 0) {
+          navigator.setAppBadge(count).catch(e => console.log("App badge failed", e));
+        } else {
+          navigator.clearAppBadge();
+        }
+      }
+    }
+
     async function loadUsers() {
-      // Get unique users who have messages
       const { data, error } = await supabaseClient
         .from('chat_messages')
-        .select('user_id, created_at, message')
+        .select('user_id, created_at, message, sender, is_read')
         .order('created_at', { ascending: false });
 
       if (error || !data) return;
 
-      // Get the latest message per user
+      // 1. Group by user and find latest message
       const uniqueUsers = [...new Map(data.map(m => [m.user_id, m])).values()];
-      
       const list = document.getElementById('user-list');
+      
       if (uniqueUsers.length === 0) {
         list.innerHTML = '<p class="empty-state">No active chats right now.</p>';
+        updateAppBadge(0);
         return;
       }
 
-      // Fetch profile names
       const userIds = uniqueUsers.map(u => u.user_id);
       const { data: profiles } = await supabaseClient.from('profiles').select('id, first_name, last_name, email').in('id', userIds);
       const profileMap = new Map(profiles?.map(p => [p.id, p]));
 
+      // 2. Count unread messages
+      let totalUnread = 0;
+      const unreadCounts = {};
+      data.forEach(m => {
+        if (m.sender === 'customer' && !m.is_read) {
+          unreadCounts[m.user_id] = (unreadCounts[m.user_id] || 0) + 1;
+          totalUnread++;
+        }
+      });
+
+      // 3. Update the App Icon Badge
+      updateAppBadge(totalUnread);
+
+      // 4. Render the list (WhatsApp Style)
       list.innerHTML = uniqueUsers.map(u => {
         const p = profileMap.get(u.user_id) || {};
         const name = `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.email || 'Customer';
+        const unread = unreadCounts[u.user_id] || 0;
+        const time = new Date(u.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        
         return `
           <div class="user-item ${activeUserId === u.user_id ? 'active' : ''}" onclick="openChat('${u.user_id}', '${name.replace(/'/g, "\\'")}')">
-            <div>
-              <strong>${name}</strong>
-              <span>${u.message}</span>
+            <div class="user-info">
+              <div class="user-name">${name}</div>
+              <div class="user-last-msg">${u.sender === 'admin' ? 'You: ' : ''}${u.message}</div>
+            </div>
+            <div class="user-meta">
+              <div class="user-time">${time}</div>
+              ${unread > 0 ? `<div class="unread-badge">${unread}</div>` : ''}
             </div>
           </div>
         `;
@@ -95,9 +150,6 @@
       activeUserId = userId;
       document.getElementById('chat-area').style.display = 'flex';
       document.getElementById('chat-header').textContent = userName;
-      
-      // Highlight active user
-      document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active'));
 
       const { data: msgs } = await supabaseClient
         .from('chat_messages')
@@ -109,18 +161,26 @@
       container.innerHTML = '';
       msgs?.forEach(m => appendAdminMsg(m));
 
-      // Subscribe to new messages
+      // Mark as read
+      await supabaseClient
+        .from('chat_messages')
+        .update({ is_read: true })
+        .eq('user_id', userId)
+        .eq('sender', 'customer')
+        .eq('is_read', false);
+        
+      loadUsers(); // This will also reset the App Badge
+
       if (adminChannel) supabaseClient.removeChannel(adminChannel);
       adminChannel = supabaseClient
         .channel('admin-chat-' + userId)
         .on('postgres_changes', { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'chat_messages',
-          filter: `user_id=eq.${userId}`
+          event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `user_id=eq.${userId}`
         }, payload => {
           if (payload.new.sender === 'customer') {
             appendAdminMsg(payload.new);
+            playNotificationSound();
+            loadUsers(); 
           }
         })
         .subscribe();
@@ -142,22 +202,30 @@
       input.value = '';
       
       await supabaseClient.from('chat_messages').insert({
-        user_id: activeUserId,
-        sender: 'admin',
-        message: text
+        user_id: activeUserId, sender: 'admin', message: text, is_read: false
       });
       
       appendAdminMsg({ sender: 'admin', message: text });
+      loadUsers(); // Updates the sidebar with "You: message"
     });
 
     document.getElementById('admin-chat-input').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') document.getElementById('admin-chat-send').click();
     });
 
+    // Load users initially
     (async () => {
       await requireAdmin();
       await mountAdminShell('chat');
       await loadUsers();
+
+      // Listen for ANY new message to update the sidebar & App Badge in real-time
+      supabaseClient
+        .channel('admin-global-chat')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, payload => {
+          loadUsers(); 
+        })
+        .subscribe();
     })();
   </script>
 </body>
