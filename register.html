@@ -4,144 +4,274 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Create Account — Great Addesam</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/styles.css" />
   <style>
-    .password-wrapper { position: relative; }
-    .password-wrapper input { padding-right: 40px; }
-    .toggle-password {
-      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-      cursor: pointer; background: none; border: none; font-size: 16px;
-      color: #737373; padding: 5px;
-    }
-    .toggle-password:hover { color: #0a0a0a; }
+    body, html { height: 100%; margin: 0; font-family: 'Inter', sans-serif; }
     
-    select {
-      width: 100%; padding: 12px; border: 1px solid #e5e5e5; border-radius: 8px;
-      font-size: 14px; background-color: #fff; color: #333;
-      appearance: none; -webkit-appearance: none;
-      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-      background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;
+    .auth-container {
+      display: flex;
+      min-height: 100vh;
+      width: 100%;
     }
-    select:focus { border-color: #0a0a0a; outline: none; }
 
-    .google-btn {
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      width: 100%; padding: 12px; background: #fff; border: 1px solid #ccc;
-      border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;
-      margin-bottom: 20px; color: #333; text-decoration: none;
+    /* Left Side: Image */
+    .auth-image {
+      flex: 1;
+      background-image: url('https://images.unsplash.com/photo-1513694203232-719a280e022f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+      background-size: cover;
+      background-position: center;
+      display: none; 
     }
-    .google-btn:hover { background: #f9f9f9; }
-    .divider { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-    .divider hr { flex: 1; border: none; border-top: 1px solid #e5e5e5; }
-    .divider span { font-size: 12px; color: #737373; }
+
+    /* Right Side: Form */
+    .auth-form-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f3f4f6;
+      padding: 40px 20px;
+    }
+
+    .auth-card {
+      background: #0e5a4a; 
+      color: #fff;
+      padding: 50px 40px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+
+    .auth-icon {
+      margin: 0 auto 20px;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .auth-card h2 {
+      font-size: 24px;
+      font-weight: 500;
+      margin-bottom: 25px;
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+
+    .auth-input-group {
+      margin-bottom: 15px;
+      position: relative;
+    }
+
+    .auth-input-group input, .auth-input-group select {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 10px 0;
+      padding-right: 35px; /* Room for the eye icon */
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    .auth-input-group select {
+      appearance: none;
+      cursor: pointer;
+    }
+    
+    .auth-input-group select option {
+      color: #0a0a0a;
+    }
+
+    .auth-input-group input::placeholder {
+      color: rgba(255,255,255,0.7);
+    }
+
+    .auth-input-group input:focus, .auth-input-group select:focus {
+      border-bottom-color: #fff;
+    }
+
+    /* Eye Icon Styling */
+    .toggle-password {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      padding: 5px;
+      font-size: 16px;
+    }
+    .toggle-password:hover {
+      color: #fff;
+    }
+
+    .auth-btn {
+      background: #fff;
+      color: #0e5a4a;
+      border: none;
+      padding: 14px;
+      width: 100%;
+      border-radius: 30px;
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 25px;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .auth-btn:hover {
+      transform: translateY(-2px);
+      background: #f0fdf4;
+    }
+
+    .auth-footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.8);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .auth-footer a {
+      color: #fff;
+      text-decoration: underline;
+      font-weight: 600;
+    }
+
+    .checkbox-group {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      margin-top: 15px;
+    }
+    .checkbox-group input {
+      width: auto;
+      margin-top: 3px;
+    }
+
+    @media (min-width: 768px) {
+      .auth-image { display: block; }
+    }
   </style>
 </head>
 <body>
-  <div id="site-header"></div>
-  <main class="container" style="padding:40px 16px; max-width:500px;">
-    <h1>Create an Account</h1>
-    <p class="muted">Save your details for faster checkout and track your orders.</p>
+  <div class="auth-container">
+    <!-- Left Image Side -->
+    <div class="auth-image"></div>
 
-    <!-- Google Sign In Button -->
-    <button type="button" class="google-btn" onclick="signInWithGoogle()">
-      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-      Continue with Google
-    </button>
+    <!-- Right Form Side -->
+    <div class="auth-form-wrapper">
+      <div class="auth-card">
+        
+        <div class="auth-icon">
+          <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 4c-4.418 0-8 3.582-8 8s3.582 8 8 8 8-3.582 8-8-3.582-8-8-8z" opacity="0.3"/>
+            <path d="M12 7c-2.761 0-5 2.239-5 5s2.239 5 5 5 5-2.239 5-5-2.239-5-5-5z" opacity="0.5"/>
+            <path d="M12 10c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2z"/>
+          </svg>
+        </div>
 
-    <div class="divider">
-      <hr><span>OR</span><hr>
+        <h2>Create Account</h2>
+
+        <form id="register-form">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="auth-input-group">
+              <input id="r-fname" type="text" placeholder="First Name" required />
+            </div>
+            <div class="auth-input-group">
+              <input id="r-lname" type="text" placeholder="Last Name" required />
+            </div>
+          </div>
+
+          <div class="auth-input-group">
+            <input id="r-email" type="email" placeholder="E-mail address" required />
+          </div>
+          
+          <!-- Password Field with Eye Icon -->
+          <div class="auth-input-group">
+            <input id="r-pass" type="password" placeholder="Password" required minlength="6" />
+            <button type="button" class="toggle-password" onclick="togglePassword('r-pass', this)">👁️</button>
+          </div>
+
+          <!-- Confirm Password Field with Eye Icon -->
+          <div class="auth-input-group">
+            <input id="r-pass-confirm" type="password" placeholder="Confirm Password" required minlength="6" />
+            <button type="button" class="toggle-password" onclick="togglePassword('r-pass-confirm', this)">👁️</button>
+          </div>
+
+          <div class="auth-input-group">
+            <input id="r-phone" type="tel" placeholder="Phone Number" required />
+          </div>
+
+          <div class="auth-input-group">
+            <select id="r-region" required style="color: rgba(255,255,255,0.7);">
+              <option value="" disabled selected>Select Region</option>
+              <option value="Ahafo">Ahafo</option>
+              <option value="Ashanti">Ashanti</option>
+              <option value="Bono">Bono</option>
+              <option value="Bono East">Bono East</option>
+              <option value="Central">Central</option>
+              <option value="Eastern">Eastern</option>
+              <option value="Greater Accra">Greater Accra</option>
+              <option value="North East">North East</option>
+              <option value="Northern">Northern</option>
+              <option value="Oti">Oti</option>
+              <option value="Savannah">Savannah</option>
+              <option value="Upper East">Upper East</option>
+              <option value="Upper West">Upper West</option>
+              <option value="Volta">Volta</option>
+              <option value="Western">Western</option>
+              <option value="Western North">Western North</option>
+            </select>
+          </div>
+
+          <div class="auth-input-group">
+            <input id="r-city" type="text" placeholder="City / Town" required />
+          </div>
+
+          <div class="auth-input-group">
+            <input id="r-address" type="text" placeholder="Address / Landmark" required />
+          </div>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="r-terms" required />
+            <label for="r-terms" style="font-size: 12px; line-height: 1.4; color: rgba(255,255,255,0.8);">
+              I agree to the <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a>.
+            </label>
+          </div>
+          
+          <button type="submit" class="auth-btn" id="reg-btn">Sign up</button>
+          <p id="reg-msg" style="text-align:center; margin-top:15px; font-size:13px; color:#fca5a5;"></p>
+        </form>
+
+        <div class="auth-footer" style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 20px; margin-top: 25px;">
+          Already have an account? <a href="login.html">Log in.</a>
+        </div>
+
+      </div>
     </div>
-
-    <form id="register-form" class="form-card">
-      <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">Account Details</h3>
-      <div class="form-field"><label>First Name</label><input id="r-fname" required /></div>
-      <div class="form-field"><label>Last Name</label><input id="r-lname" required /></div>
-      <div class="form-field"><label>Email</label><input id="r-email" type="email" required /></div>
-      
-      <div class="form-field">
-        <label>Password</label>
-        <div class="password-wrapper">
-          <input id="r-pass" type="password" required minlength="6" />
-          <button type="button" class="toggle-password" onclick="togglePassword('r-pass', this)">👁️</button>
-        </div>
-      </div>
-      
-      <div class="form-field">
-        <label>Confirm Password</label>
-        <div class="password-wrapper">
-          <input id="r-pass-confirm" type="password" required minlength="6" />
-          <button type="button" class="toggle-password" onclick="togglePassword('r-pass-confirm', this)">👁️</button>
-        </div>
-      </div>
-
-      <div class="form-field"><label>Phone Number</label><input id="r-phone" type="tel" required placeholder="e.g. 0240000000" /></div>
-      
-      <h3 style="margin-top:30px; border-bottom:1px solid #eee; padding-bottom:10px;">Delivery Details</h3>
-      
-      <div class="form-field">
-        <label>Region</label>
-        <select id="r-region" required>
-          <option value="" disabled selected>Select your region...</option>
-          <option value="Ahafo">Ahafo</option>
-          <option value="Ashanti">Ashanti</option>
-          <option value="Bono">Bono</option>
-          <option value="Bono East">Bono East</option>
-          <option value="Central">Central</option>
-          <option value="Eastern">Eastern</option>
-          <option value="Greater Accra">Greater Accra</option>
-          <option value="North East">North East</option>
-          <option value="Northern">Northern</option>
-          <option value="Oti">Oti</option>
-          <option value="Savannah">Savannah</option>
-          <option value="Upper East">Upper East</option>
-          <option value="Upper West">Upper West</option>
-          <option value="Volta">Volta</option>
-          <option value="Western">Western</option>
-          <option value="Western North">Western North</option>
-        </select>
-      </div>
-
-      <div class="form-field"><label>City / Town</label><input id="r-city" required placeholder="e.g. Kumasi" /></div>
-      <div class="form-field"><label>Suburb / Area</label><input id="r-suburb" required placeholder="e.g. Asokwa" /></div>
-      <div class="form-field"><label>House Number / Street Name</label><input id="r-street" required placeholder="e.g. 12B, Lake Road" /></div>
-      <div class="form-field"><label>Nearest Landmark (Optional)</label><input id="r-landmark" placeholder="e.g. Behind the Shell Filling Station" /></div>
-      
-      <div class="form-field" style="display:flex; gap:8px; align-items:flex-start; margin-top:20px;">
-        <input type="checkbox" id="r-terms" required style="width:auto; margin-top:4px;" />
-        <label for="r-terms" style="font-weight:normal; font-size:13px;">I agree to the <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a></label>
-      </div>
-
-      <button type="submit" class="btn btn-dark" style="width:100%; margin-top:10px;" id="reg-btn">Sign Up</button>
-      <p id="reg-msg" style="text-align:center; margin-top:10px; font-size:13px;"></p>
-    </form>
-  </main>
-  <div id="site-footer"></div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-client.js"></script>
-  <script src="js/cart.js"></script>
-  <script src="js/header.js"></script>
-  <script src="js/footer.js"></script>
   <script>
-    // Google Sign In Function
-    async function signInWithGoogle() {
-      const { error } = await supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin + '/account.html'
-        }
-      });
-      if (error) alert('Google signup failed: ' + error.message);
-    }
-
+    // Function to toggle password visibility
     function togglePassword(inputId, btn) {
       const input = document.getElementById(inputId);
       if (input.type === 'password') {
         input.type = 'text';
-        btn.textContent = '🙈';
+        btn.textContent = '🙈'; // Hide icon
       } else {
         input.type = 'password';
-        btn.textContent = '👁️';
+        btn.textContent = '👁️'; // Show icon
       }
     }
 
@@ -153,17 +283,16 @@
       const email = document.getElementById('r-email').value;
       const password = document.getElementById('r-pass').value;
       const confirmPassword = document.getElementById('r-pass-confirm').value;
+      const region = document.getElementById('r-region').value;
 
+      // 1. Check if passwords match
       if (password !== confirmPassword) {
         msg.textContent = 'Passwords do not match. Please try again.';
-        msg.style.color = '#dc2626';
         return;
       }
 
-      const region = document.getElementById('r-region').value;
       if (!region) {
         msg.textContent = 'Please select your region.';
-        msg.style.color = '#dc2626';
         return;
       }
 
@@ -171,19 +300,17 @@
       btn.textContent = 'Creating account...';
       msg.textContent = ''; 
 
-      const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-        email,
-        password,
-      });
+      // 2. Sign up
+      const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email, password });
 
       if (authError) {
         msg.textContent = authError.message;
-        msg.style.color = '#dc2626';
         btn.disabled = false;
-        btn.textContent = 'Sign Up';
+        btn.textContent = 'Sign up';
         return;
       }
 
+      // 3. Save profile
       if (authData.user) {
         const profileData = {
           id: authData.user.id,
@@ -193,25 +320,17 @@
           phone: document.getElementById('r-phone').value,
           region: region,
           city: document.getElementById('r-city').value,
-          suburb: document.getElementById('r-suburb').value,
-          street_name: document.getElementById('r-street').value,
-          landmark: document.getElementById('r-landmark').value,
+          landmark: document.getElementById('r-address').value,
         };
 
-        const { error: profileError } = await supabaseClient
-          .from('profiles')
-          .upsert(profileData);
-
-        if (profileError) {
-          console.error('Profile save error:', profileError);
-        }
+        await supabaseClient.from('profiles').upsert(profileData);
 
         document.getElementById('register-form').innerHTML = `
           <div style="text-align:center; padding:20px;">
-            <h2 style="color:#16a34a;">✓ Check Your Email</h2>
-            <p>We sent a verification link to <strong>${email}</strong>.</p>
-            <p class="muted">Please click the link in that email to verify your account before logging in.</p>
-            <a href="login.html" class="btn btn-dark" style="margin-top:20px;">Go to Login</a>
+            <h3 style="color:#fff;">✓ Check Your Email</h3>
+            <p style="font-size:14px; color:rgba(255,255,255,0.8);">We sent a verification link to <strong>${email}</strong>.</p>
+            <p style="font-size:12px; color:rgba(255,255,255,0.6);">Please click the link to verify your account.</p>
+            <a href="login.html" class="auth-btn" style="display:block; text-decoration:none; margin-top:20px;">Go to Login</a>
           </div>
         `;
       }
