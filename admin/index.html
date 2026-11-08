@@ -162,10 +162,12 @@
       const now = new Date();
       const buckets = {};
 
+      // ONLY chart paid orders so the graph matches the revenue card
+      const paidOrders = globalOrders.filter(o => o.status !== 'cancelled' && o.payment_status === 'paid');
+
       if (filterType === 'today') {
         for (let i = 0; i < 24; i+=2) buckets[`${i}:00`] = 0;
-        globalOrders.forEach(o => {
-          if (o.status === 'cancelled') return;
+        paidOrders.forEach(o => {
           const d = new Date(o.created_at);
           if (d.toDateString() === now.toDateString()) {
             const hr = d.getHours();
@@ -178,8 +180,7 @@
           const d = new Date(); d.setDate(d.getDate() - i);
           buckets[d.toLocaleDateString('en-US', { weekday: 'short' })] = 0;
         }
-        globalOrders.forEach(o => {
-          if (o.status === 'cancelled') return;
+        paidOrders.forEach(o => {
           const d = new Date(o.created_at);
           const diff = Math.floor((now - d) / (1000 * 60 * 60 * 24));
           if (diff < 7) {
@@ -189,8 +190,7 @@
         });
       } else if (filterType === 'month') {
         buckets['Week 1'] = 0; buckets['Week 2'] = 0; buckets['Week 3'] = 0; buckets['Week 4'] = 0; buckets['Week 5'] = 0;
-        globalOrders.forEach(o => {
-          if (o.status === 'cancelled') return;
+        paidOrders.forEach(o => {
           const d = new Date(o.created_at);
           if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
             const day = d.getDate();
@@ -205,8 +205,7 @@
       } else if (filterType === 'year') {
         const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         months.forEach(m => buckets[m] = 0);
-        globalOrders.forEach(o => {
-          if (o.status === 'cancelled') return;
+        paidOrders.forEach(o => {
           const d = new Date(o.created_at);
           if (d.getFullYear() === now.getFullYear()) {
             buckets[months[d.getMonth()]] += Number(o.total_amount);
@@ -281,16 +280,26 @@
       const productSales = {}; 
 
       orders.forEach(o => {
-        if (o.status !== 'cancelled') {
+        // FIX: Only count as revenue if the order is NOT cancelled AND IS actually paid!
+        const isPaid = o.payment_status === 'paid';
+        
+        if (o.status !== 'cancelled' && isPaid) {
           totalRevenue += Number(o.total_amount);
+          
           if (Array.isArray(o.order_items)) {
             o.order_items.forEach(item => {
               if (!productSales[item.productName]) productSales[item.productName] = { qty: 0, revenue: 0 };
-              productSales[item.productName].qty += item.quantity;
-              productSales[item.productName].revenue += (item.unitPrice * item.quantity);
+              
+              const qty = Number(item.quantity) || 0;
+              const price = Number(item.unitPrice) || 0;
+              
+              productSales[item.productName].qty += qty;
+              productSales[item.productName].revenue += (price * qty);
             });
           }
         }
+        
+        // Orders this month just counts how many orders were placed (paid or not)
         const oDate = new Date(o.created_at);
         if (oDate.getMonth() === currentMonth && oDate.getFullYear() === new Date().getFullYear()) monthOrders++;
       });
