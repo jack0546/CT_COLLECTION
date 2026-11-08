@@ -22,6 +22,11 @@
     /* Cancelled State */
     .cancelled-banner { background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; width: 100%; border: 1px solid #fecaca; }
 
+    /* POS State */
+    .pos-banner { background: #dcfce7; color: #166534; padding: 20px; border-radius: 8px; text-align: center; width: 100%; border: 1px solid #bbf7d0; }
+    .pos-banner h3 { margin: 0 0 10px; font-size: 18px; }
+    .pos-banner p { margin: 0; font-size: 14px; }
+
     .hidden { display: none !important; }
 
     /* Printer Animation */
@@ -67,13 +72,20 @@
         Payment: <span id="r-payment" style="font-weight: bold;"></span>
       </p>
 
-      <!-- Timeline updated to include Processing -->
+      <!-- Timeline (Default for online orders) -->
       <div class="timeline" id="r-timeline">
         <div class="timeline-step" data-step="pending"><div class="timeline-circle">1</div><div class="timeline-label">Pending</div></div>
         <div class="timeline-step" data-step="confirmed"><div class="timeline-circle">2</div><div class="timeline-label">Confirmed</div></div>
         <div class="timeline-step" data-step="processing"><div class="timeline-circle">3</div><div class="timeline-label">Processing</div></div>
         <div class="timeline-step" data-step="shipped"><div class="timeline-circle">4</div><div class="timeline-label">Shipped</div></div>
         <div class="timeline-step" data-step="delivered"><div class="timeline-circle">✓</div><div class="timeline-label">Delivered</div></div>
+      </div>
+
+      <!-- POS / In-Store Pickup Banner (Shown only for POS orders) -->
+      <div id="pos-banner" class="pos-banner hidden" style="margin-top: 20px;">
+        <h3>🛍️ Purchased In Shop</h3>
+        <p>Thank you for doing business with us, <strong id="pos-customer-name"></strong>!</p>
+        <p style="font-size: 12px; margin-top: 8px; color: #166534;">This item was paid for and collected at the counter.</p>
       </div>
 
       <div style="margin-top: 30px; border-top: 1px solid #e5e5e5; padding-top: 15px;">
@@ -105,7 +117,6 @@
   <script src="js/header.js"></script>
   <script src="js/footer.js"></script>
   <script>
-    // 1. UPDATED STATUS MAP to match your admin dashboard
     const STATUS_MAP = { 
       pending: 0, 
       confirmed: 1, 
@@ -171,31 +182,43 @@
         </div>
       `).join('');
 
-      const currentStatus = order.status;
-      const currentStep = STATUS_MAP[currentStatus];
+      // --- NEW LOGIC: CHECK IF POS ORDER ---
+      const isPOS = order.order_reference.startsWith('POS-');
 
-      // 2. CANCELLED LOGIC
-      if (currentStatus === 'cancelled') {
-        document.getElementById('r-timeline').innerHTML = `
-          <div class="cancelled-banner">
-             This order has been cancelled.<br>
-            <span style="font-weight: normal; font-size: 13px;">Please contact us on WhatsApp or call us on normal call for more details.</span>
-          </div>`;
+      if (isPOS) {
+        // Hide the timeline and show the POS banner
+        document.getElementById('r-timeline').classList.add('hidden');
+        document.getElementById('pos-banner').classList.remove('hidden');
+        document.getElementById('pos-customer-name').textContent = order.customer_name;
       } else {
-        document.querySelectorAll('.timeline-step').forEach(el => {
-          const stepIndex = STATUS_MAP[el.dataset.step];
-          el.classList.remove('active', 'completed');
-          
-          if (stepIndex < currentStep) {
-            el.classList.add('completed');
-          } else if (stepIndex === currentStep) {
-            el.classList.add('active');
-          }
-        });
+        // Standard timeline logic for online orders
+        document.getElementById('r-timeline').classList.remove('hidden');
+        document.getElementById('pos-banner').classList.add('hidden');
+
+        const currentStatus = order.status;
+        const currentStep = STATUS_MAP[currentStatus];
+
+        if (currentStatus === 'cancelled') {
+          document.getElementById('r-timeline').innerHTML = `
+            <div class="cancelled-banner">
+              This order has been cancelled.<br>
+              <span style="font-weight: normal; font-size: 13px;">Please contact us on WhatsApp or call us on normal call for more details.</span>
+            </div>`;
+        } else {
+          document.querySelectorAll('.timeline-step').forEach(el => {
+            const stepIndex = STATUS_MAP[el.dataset.step];
+            el.classList.remove('active', 'completed');
+            
+            if (stepIndex < currentStep) {
+              el.classList.add('completed');
+            } else if (stepIndex === currentStep) {
+              el.classList.add('active');
+            }
+          });
+        }
       }
     });
 
-    // ... (Keep your existing buildReceiptHTML and generateReceipt functions exactly as they are) ...
     function buildReceiptHTML() {
       const order = currentOrderData;
       const symbol = currentSettings?.currency_symbol || '₵';
@@ -245,7 +268,7 @@
         <div class="receipt-divider"></div>
         <div class="receipt-footer">
           <p>Thank you for shopping with us!</p>
-          <p>This is geerated by Great Addesam .</p>
+          <p>This is generated by Great Addesam.</p>
         </div>
       `;
     }
@@ -265,23 +288,27 @@
 
     document.getElementById('download-pdf-btn').addEventListener('click', () => {
       const order = currentOrderData;
-      const currencyText = 'GHS';
+      const currencyText = 'GHC';
       const dateStr = new Date(order.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
       
-      const doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: [105, 250] });
+      const doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: [90, 250] });
+      
       let y = 15; 
       const left = 8;
-      const right = 97;
-      const center = 52.5;
+      const right = 82;
+      const center = 45;
 
       doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
       doc.text(currentSettings?.store_name || 'GREAT ADDESAM', center, y, { align: 'center' }); y += 6;
+      
       doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
       if (currentSettings?.contact_phone) { doc.text(currentSettings.contact_phone, center, y, { align: 'center' }); y += 4; }
       if (currentSettings?.contact_email) { doc.text(currentSettings.contact_email, center, y, { align: 'center' }); y += 4; }
-      y += 2; doc.line(10, y, 95, y); y += 6;
+      
+      y += 2; doc.line(left, y, right, y); y += 6;
 
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(22, 163, 74);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+      doc.setTextColor(22, 163, 74);
       doc.text('STATUS: PAID', center, y, { align: 'center' });
       doc.setTextColor(0, 0, 0); y += 6;
 
@@ -291,42 +318,46 @@
       doc.text(`Customer: ${order.customer_name}`, left, y); y += 5;
       doc.text(`Phone: ${order.customer_phone}`, left, y); y += 5;
       doc.text(`Email: ${order.customer_email || 'N/A'}`, left, y); y += 5;
-      doc.text(`Location: ${order.delivery_location}`, left, y); y += 5;
+      doc.text(`Location: ${order.delivery_location || 'N/A'}`, left, y); y += 5;
       
-      const addressLines = doc.splitTextToSize(`Address: ${order.delivery_address}`, 85);
+      const addressLines = doc.splitTextToSize(`Address: ${order.delivery_address || 'N/A'}`, 70);
       doc.text(addressLines, left, y); y += (addressLines.length * 5);
 
       if (order.notes) {
-        const notesLines = doc.splitTextToSize(`Notes: ${order.notes}`, 85);
+        const notesLines = doc.splitTextToSize(`Notes: ${order.notes}`, 70);
         doc.text(notesLines, left, y); y += (notesLines.length * 5);
       }
       
-      y += 2; doc.line(10, y, 95, y); y += 6;
+      y += 2; doc.line(left, y, right, y); y += 6;
 
       doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
-      doc.text('Item', left, y); doc.text('Qty', 65, y); doc.text('Total', right, y, { align: 'right' });
-      y += 4; doc.line(10, y, 95, y); y += 6;
+      doc.text('Item', left, y); doc.text('Qty', 55, y); doc.text('Total', right, y, { align: 'right' });
+      y += 4; doc.line(left, y, right, y); y += 6;
 
       doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
       order.order_items.forEach(item => {
-        const nameLines = doc.splitTextToSize(item.productName, 50);
+        const nameLines = doc.splitTextToSize(item.productName, 40);
         doc.text(nameLines, left, y);
         const itemHeight = nameLines.length * 4;
+        
         doc.setFontSize(7); doc.text(`${item.colourName} / ${item.size}`, left + 2, y + itemHeight); doc.setFontSize(9);
+        
         const lineTotal = Number(item.unitPrice * item.quantity).toFixed(2);
-        doc.text(`${item.quantity}`, 65, y);
+        doc.text(`${item.quantity}`, 55, y);
         doc.text(`${currencyText} ${lineTotal}`, right, y, { align: 'right' });
+        
         y += itemHeight + 6;
       });
 
-      y += 2; doc.line(10, y, 95, y); y += 8;
+      y += 2; doc.line(left, y, right, y); y += 8;
+
       doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
       doc.text(`TOTAL: ${currencyText} ${Number(order.total_amount).toFixed(2)}`, right, y, { align: 'right' });
       y += 10;
 
       doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
       doc.text('Thank you for shopping with us!', center, y, { align: 'center' }); y += 5;
-      doc.text('This is geerated by Great Addesam .', center, y, { align: 'center' });
+      doc.text('This is generated by Great Addesam.', center, y, { align: 'center' });
 
       doc.save(`Receipt-${order.order_reference}.pdf`);
     });
