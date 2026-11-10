@@ -8,11 +8,38 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <style>
-    .pos-layout { display: grid; grid-template-columns: 1fr 400px; gap: 20px; height: calc(100vh - 120px); overflow: hidden; }
-    @media (max-width: 900px) { .pos-layout { grid-template-columns: 1fr; height: auto; overflow: visible; } }
+    /* 1. LOCK THE SCREEN - PREVENTS PAGE SCROLL */
+    html, body { height: 100vh; overflow: hidden; margin: 0; }
+    .admin-shell { height: 100vh; display: flex; }
+    .admin-main { flex: 1; display: flex; flex-direction: column; height: 100vh; padding: 20px; box-sizing: border-box; overflow: hidden; }
+
+    /* 2. GRID LAYOUT */
+    .pos-layout { 
+      display: grid; 
+      grid-template-columns: 1fr 400px; 
+      gap: 20px; 
+      flex: 1; 
+      min-height: 0; /* Crucial: allows children to scroll */
+    }
     
-    .pos-products { background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #e5e5e5; overflow-y: auto; }
-    .pos-search { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 15px; font-size: 14px; position: sticky; top: 0; z-index: 10; }
+    @media (max-width: 900px) { 
+      html, body { overflow: auto; height: auto; }
+      .admin-shell { height: auto; }
+      .admin-main { height: auto; overflow: auto; }
+      .pos-layout { grid-template-columns: 1fr; height: auto; } 
+    }
+    
+    /* 3. LEFT SIDE: Scrollable Products */
+    .pos-products { 
+      background: #fff; 
+      padding: 20px; 
+      border-radius: 12px; 
+      border: 1px solid #e5e5e5; 
+      overflow-y: auto; 
+      display: flex;
+      flex-direction: column;
+    }
+    .pos-search { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 15px; font-size: 14px; position: sticky; top: 0; z-index: 10; flex-shrink: 0; background: #fff; }
     .pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
     .pos-item { border: 1px solid #eee; border-radius: 8px; padding: 10px; cursor: pointer; transition: 0.2s; }
     .pos-item:hover { border-color: #16a34a; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
@@ -21,25 +48,45 @@
     .pos-item p { margin: 0; font-size: 12px; color: #666; }
     .pos-item .old-price { text-decoration: line-through; color: #aaa; font-size: 11px; margin-right: 5px; }
     
-    .pos-cart { background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #e5e5e5; display: flex; flex-direction: column; height: 100%; min-height: 0; box-shadow: -5px 0 15px rgba(0,0,0,0.03); }
-    .cart-items { flex: 1; overflow-y: auto; margin-bottom: 15px; padding-right: 5px; min-height: 150px; }
+    /* 4. RIGHT SIDE: Locked Cart */
+    .pos-cart { 
+      background: #fff; 
+      padding: 20px; 
+      border-radius: 12px; 
+      border: 1px solid #e5e5e5; 
+      display: flex; 
+      flex-direction: column; 
+      height: 100%; 
+      box-shadow: -5px 0 15px rgba(0,0,0,0.03); 
+      overflow: hidden; /* Stops the whole cart from scrolling */
+    }
+    
+    .cart-items { 
+      flex: 1; 
+      overflow-y: auto; 
+      margin-bottom: 15px; 
+      padding-right: 5px; 
+      min-height: 100px;
+    }
     .cart-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 10px 0; font-size: 13px; }
     .cart-row-info { flex: 1; }
     .cart-row-qty { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
     .cart-row-qty button { width: 24px; height: 24px; border-radius: 4px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
     
+    /* Bottom section is locked to the bottom */
     .cart-bottom { flex-shrink: 0; background: #fff; border-top: 1px solid #eee; padding-top: 15px; }
     .pos-total { font-size: 20px; font-weight: bold; text-align: right; margin-bottom: 15px; border-top: 2px dashed #eee; padding-top: 15px; }
     
     .pos-form .form-field { margin-bottom: 10px; }
     .pos-form label { font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px; }
-    .pos-form input, .pos-form select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; background: #fff; }
+    .pos-form input, .pos-form select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; background: #fff; box-sizing: border-box; }
     
     .btn-checkout { width: 100%; background: #16a34a; color: #fff; border: none; padding: 15px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px; transition: 0.2s; }
     .btn-checkout:hover { background: #15803d; }
 
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
-    .modal-content { background: #fff; padding: 25px; border-radius: 12px; width: 90%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    /* Modal Styling */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+    .modal-content { background: #fff; padding: 25px; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
     .modal-header h3 { margin: 0; font-size: 18px; }
     .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #666; }
@@ -81,8 +128,8 @@
 <body>
   <div class="admin-shell">
     <main class="admin-main">
-      <div class="admin-topbar">
-        <h1>Point of Sale (POS)</h1>
+      <div class="admin-topbar" style="flex-shrink:0; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+        <h1 style="margin:0;">Point of Sale (POS)</h1>
         <a href="orders.html" class="btn btn-light">View Orders</a>
       </div>
 
@@ -510,18 +557,16 @@
       `;
     }
 
-    // UPDATED PDF GENERATION WITH GHC AND WIDER PAGE
     document.getElementById('download-pdf-btn').addEventListener('click', () => {
       const order = lastOrderData;
       const dateStr = new Date(order.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
       
-      // Increased width to 90mm to prevent text cutting off on the right
       const doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: [90, 200] });
       
       let y = 15; 
       const left = 5;
-      const right = 85; // Adjusted right margin
-      const center = 45; // Adjusted center
+      const right = 85; 
+      const center = 45; 
 
       doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
       doc.text('GREAT ADDESAM', center, y, { align: 'center' }); y += 5;
@@ -569,7 +614,6 @@
       y += 2; doc.line(left, y, right, y); y += 7;
 
       doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
-      // USING GHC INSTEAD OF ₵
       doc.text(`TOTAL: GHC ${Number(order.total_amount).toFixed(2)}`, right, y, { align: 'right' });
       y += 10;
 
