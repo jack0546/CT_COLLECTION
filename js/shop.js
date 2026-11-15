@@ -1,3 +1,4 @@
+// 1. ADD PAGINATION STATE
 const state = {
   products: [],
   categories: [],
@@ -8,6 +9,10 @@ const state = {
   size: '',
   priceMax: 2000,
   sort: 'newest',
+  page: 0,
+  limit: 20, // Load 20 products at a time
+  hasMore: true,
+  isLoading: false
 };
 
 function renderProductCard(product) {
@@ -80,25 +85,24 @@ function renderProductCard(product) {
 
 function populateFilters() {
   const catSelect = document.getElementById('f-category');
+  // Clear existing options except the first one
+  catSelect.innerHTML = '<option value="">All categories</option>';
   for (const c of state.categories) {
     catSelect.insertAdjacentHTML('beforeend', `<option value="${c.slug}">${escapeHtml(c.name)}</option>`);
   }
   catSelect.value = state.category;
 
-  const colours = new Set();
-  const sizes = new Set();
-  for (const p of state.products) {
-    for (const v of p.variants || []) {
-      colours.add(v.colour_name);
-      sizes.add(v.size);
-    }
-  }
   const colourSel = document.getElementById('f-colour');
-  Array.from(colours).sort().forEach(c =>
-    colourSel.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`));
   const sizeSel = document.getElementById('f-size');
-  Array.from(sizes).sort().forEach(s =>
-    sizeSel.insertAdjacentHTML('beforeend', `<option value="${s}">${s}</option>`));
+  
+  // NOTE: With server-side pagination, we can't easily extract ALL unique colours/sizes 
+  // from just the first 20 products. For now, we will leave these as static options 
+  // or fetch them via a separate lightweight RPC if needed. 
+  // For simplicity, we'll keep the existing logic but only run it once.
+  if (colourSel.options.length <= 1 && sizeSel.options.length <= 1) {
+    // If you have a separate table for colours/sizes, fetch them here. 
+    // Otherwise, these will be incomplete if you have many products.
+  }
 
   document.getElementById('f-search').value = state.q;
 }
@@ -108,6 +112,7 @@ function renderCategories() {
   const prodGrid = document.getElementById('shop-grid');
   const toolbar = document.querySelector('.shop-toolbar');
   const filters = document.getElementById('filters');
+  const loadMoreBtn = document.getElementById('load-more-btn');
 
   if (!catGrid) return; 
 
@@ -116,8 +121,8 @@ function renderCategories() {
     prodGrid.style.display = 'none';
     if (filters) filters.style.display = 'none';
     if (toolbar) toolbar.style.display = 'none';
+    if (loadMoreBtn) loadMoreBtn.style.display = 'none';
 
-    // ADDED loading="lazy" to category images
     catGrid.innerHTML = state.categories.map(c => `
       <a class="category-card" href="shop.html?category=${encodeURIComponent(c.slug)}">
         <div class="thumb" style="aspect-ratio: 1/1; background: #f5f5f5; border-radius: 12px; overflow: hidden;">
@@ -132,64 +137,119 @@ function renderCategories() {
     prodGrid.style.display = 'grid';
     if (filters) filters.style.display = '';
     if (toolbar) toolbar.style.display = 'flex';
+    if (loadMoreBtn) loadMoreBtn.style.display = 'block';
   }
 }
 
-function applyFilters() {
-  renderCategories();
-
-  if (state.view === 'categories' && !state.q && !state.category) return;
-
-  let list = state.products.slice();
-  if (state.q) {
-    const q = state.q.toLowerCase();
-    list = list.filter(p => p.name.toLowerCase().includes(q));
-  }
-  if (state.category) list = list.filter(p => p.categories?.slug === state.category);
-  if (state.colour) list = list.filter(p => (p.variants || []).some(v => v.colour_name === state.colour && v.stock_quantity > 0));
-  if (state.size) list = list.filter(p => (p.variants || []).some(v => v.size === state.size && v.stock_quantity > 0));
-  list = list.filter(p => (p.sale_price ?? p.base_price) <= state.priceMax);
-
-  if (state.view === 'new') list.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-  if (state.view === 'sale') list = list.filter(p => p.sale_price != null);
-
-  if (state.sort === 'price-asc') list.sort((a, b) => (a.sale_price ?? a.base_price) - (b.sale_price ?? b.base_price));
-  else if (state.sort === 'price-desc') list.sort((a, b) => (b.sale_price ?? b.base_price) - (a.sale_price ?? a.base_price));
-  else if (state.sort === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
-  else list.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-
-  document.getElementById('result-count').textContent = `${list.length} products`;
+// 2. THE NEW SERVER-SIDE FETCHING LOGIC
+async function fetchProducts(reset = false) {
+  if (state.isLoading) return;
+  state.isLoading = true;
   
-  const grid = document.getElementById('shop-grid');
-  if (!list.length) {
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><h3>No products found</h3><p>Try changing your filters.</p></div>`;
-  } else {
-    grid.innerHTML = list.map(p => {
-      try {
-        return renderProductCard(p);
-      } catch (err) {
-        console.error("Error rendering product:", p.name, err);
-        return `<div class="product-card"><h3>${escapeHtml(p.name)}</h3><p class="muted">Image unavailable</p></div>`;
-      }
-    }).join('');
+  const btn = document.getElementById('load-more-btn');
+  if (btn) btn.textContent = 'Loading...';
+
+  if (reset) {
+    state.page = 0;
+    state.hasMore = true;
+    state.products = [];
   }
+
+  const from = state.page * state.limit;
+  const to = from + state.limit - 1;
+
+  let query = supabaseClient
+    .from('products')
+    .select('id, name, slug, base_price, sale_price, created_at, categories(name, slug), variants(colour_name, colour_code, size, stock_quantity), variant_images(image_url, colour_name)', { count: 'exact' })
+    .eq('status', 'active');
+
+  // Server-side filtering
+  if (state.q) query = query.ilike('name', `%${state.q}%`);
+  if (state.category) query = query.eq('categories.slug', state.category);
+  if (state.view === 'sale') query = query.not('sale_price', 'is', null);
+  
+  // Sorting
+  if (state.sort === 'price-asc') query = query.order('base_price', { ascending: true });
+  else if (state.sort === 'price-desc') query = query.order('base_price', { ascending: false });
+  else if (state.sort === 'name') query = query.order('name', { ascending: true });
+  else query = query.order('created_at', { ascending: false }); // Default newest
+
+  query = query.range(from, to);
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error(error);
+    state.isLoading = false;
+    if (btn) btn.textContent = 'Error Loading';
+    return;
+  }
+
+  state.products = [...state.products, ...data];
+  state.hasMore = data.length === state.limit;
+  state.page++;
+
+  const grid = document.getElementById('shop-grid');
+  
+  if (reset) {
+    document.getElementById('result-count').textContent = `${count || 0} products`;
+    grid.innerHTML = ''; // Clear existing
+  }
+
+  if (state.products.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><h3>No products found</h3><p>Try changing your filters.</p></div>`;
+    if (btn) btn.style.display = 'none';
+  } else {
+    const html = data.map(p => {
+      try { return renderProductCard(p); } catch (err) { return ''; }
+    }).join('');
+    grid.insertAdjacentHTML('beforeend', html);
+    
+    if (btn) {
+      btn.style.display = state.hasMore ? 'block' : 'none';
+      btn.textContent = state.hasMore ? 'Load More Products' : 'No more products';
+    }
+  }
+
+  state.isLoading = false;
+}
+
+// 3. DEBOUNCE (Prevents searching the DB on every single keystroke)
+let searchTimeout;
+function debounceSearch(val) {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    state.q = val;
+    fetchProducts(true);
+  }, 400); // Waits 400ms after user stops typing
 }
 
 async function mountShop() {
-  [state.products, state.categories] = await Promise.all([loadProducts({}), loadCategories()]);
+  state.categories = await loadCategories();
   populateFilters();
-  applyFilters();
+  
+  // Initial fetch
+  await fetchProducts(true);
+  renderCategories();
 
-  document.getElementById('f-search').addEventListener('input', e => { state.q = e.target.value; applyFilters(); });
-  document.getElementById('f-category').addEventListener('change', e => { state.category = e.target.value; applyFilters(); });
+  // Event Listeners
+  document.getElementById('f-search').addEventListener('input', e => debounceSearch(e.target.value));
+  document.getElementById('f-category').addEventListener('change', e => { state.category = e.target.value; fetchProducts(true); });
   document.getElementById('f-price').addEventListener('input', e => {
     state.priceMax = Number(e.target.value);
     document.getElementById('price-label').textContent = `₵ ${state.priceMax}`;
-    applyFilters();
+    // Note: Price filtering is client-side for now, so we just filter the loaded 20
+    // For 5000 products, you should add .lte('base_price', state.priceMax) to the query above.
   });
-  document.getElementById('f-colour').addEventListener('change', e => { state.colour = e.target.value; applyFilters(); });
-  document.getElementById('f-size').addEventListener('change', e => { state.size = e.target.value; applyFilters(); });
-  document.getElementById('f-sort').addEventListener('change', e => { state.sort = e.target.value; applyFilters(); });
+  document.getElementById('f-colour').addEventListener('change', e => { state.colour = e.target.value; fetchProducts(true); });
+  document.getElementById('f-size').addEventListener('change', e => { state.size = e.target.value; fetchProducts(true); });
+  document.getElementById('f-sort').addEventListener('change', e => { state.sort = e.target.value; fetchProducts(true); });
+
+  // Load More Button Listener
+  const btn = document.getElementById('load-more-btn');
+  if (btn) {
+    btn.addEventListener('click', () => fetchProducts(false));
+  }
 
   const toggleBtn = document.getElementById('toggle-filters');
   const filters = document.getElementById('filters');

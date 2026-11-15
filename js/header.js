@@ -42,17 +42,28 @@
       justify-content: space-between;
       gap: 20px;
     }
+    
+    /* UPDATED LOGO STYLES */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
     .logo img {
-      max-height: 40px;
+      max-height: 45px;
       width: auto;
+      display: block;
     }
     .logo span {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 800;
       letter-spacing: 1px;
       color: #0a0a0a;
       text-transform: uppercase;
+      white-space: nowrap;
     }
+    
     .nav-desktop {
       display: flex;
       gap: 25px;
@@ -193,6 +204,8 @@
       .nav-desktop, .header-search { display: none; }
       .menu-toggle { display: block; }
       .nav-mobile.open { display: flex; }
+      .logo span { font-size: 16px; } /* Shrinks text on mobile */
+      .logo img { max-height: 32px; }
     }
   `;
   document.head.appendChild(style);
@@ -201,9 +214,10 @@
     <header class="site-header">
       <div class="header-inner">
         <a href="index.html" class="logo">
-          ${settings.store_logo
-            ? `<img src="${settings.store_logo}" alt="${settings.store_name}">`
-            : `<span>${settings.store_name}</span>`}
+          ${settings.store_logo 
+            ? `<img src="${settings.store_logo}" alt="${settings.store_name}">` 
+            : ''}
+          <span>${settings.store_name || 'Great Addesam'}</span>
         </a>
         
         <nav class="nav-desktop">
