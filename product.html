@@ -29,9 +29,16 @@
     </div>
     <div id="reviews-list" style="margin-bottom: 30px;"></div>
     
-    <div class="form-card" style="margin: 0;">
+    <div class="form-card" style="margin: 0;" id="review-form-card">
       <h3 style="margin-top:0;">Leave a Review</h3>
-      <form id="review-form">
+      
+      <!-- Message shown if not logged in -->
+      <div id="login-prompt" style="display: none; background: #fef3c7; color: #92400e; padding: 15px; border-radius: 8px; font-size: 14px; text-align: center;">
+        Please <a href="login.html" style="text-decoration: underline; font-weight: bold;">log in</a> to leave a review.
+      </div>
+
+      <!-- The Review Form -->
+      <form id="review-form" style="display: none;">
         <div class="form-field"><label>Your Name</label><input id="r-name" required /></div>
         <div class="form-field"><label>Rating</label>
           <select id="r-rating" required>
@@ -43,9 +50,16 @@
           </select>
         </div>
         <div class="form-field"><label>Comment</label><textarea id="r-comment" rows="3" required></textarea></div>
-        <button type="submit" class="btn btn-dark" style="width:100%;">Submit Review</button>
+        <button type="submit" class="btn btn-dark" style="width:100%;" id="submit-review-btn">Submit Review</button>
         <p id="r-msg" style="text-align:center; margin-top:10px; font-size:13px; display:none;"></p>
       </form>
+      
+      <!-- Success Message (Hidden by default) -->
+      <div id="review-success" style="display: none; text-align: center; padding: 20px;">
+        <div style="font-size: 40px; margin-bottom: 10px;">🎉</div>
+        <h4 style="color: #166534; margin: 0 0 10px;">Thanks for the review!</h4>
+        <p class="muted">Your feedback helps other customers shop with confidence.</p>
+      </div>
     </div>
   </section>
 
@@ -64,6 +78,51 @@
         navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW failed', err));
       });
     }
+
+    // Check if user is logged in
+    (async () => {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const form = document.getElementById('review-form');
+      const prompt = document.getElementById('login-prompt');
+      
+      if (session) {
+        form.style.display = 'block';
+        prompt.style.display = 'none';
+      } else {
+        form.style.display = 'none';
+        prompt.style.display = 'block';
+      }
+    })();
+
+    // Handle Review Submission
+    document.getElementById('review-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-review-btn');
+      const msg = document.getElementById('r-msg');
+      
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      const { error } = await supabaseClient.from('reviews').insert({
+        customer_name: document.getElementById('r-name').value,
+        rating: Number(document.getElementById('r-rating').value),
+        comment: document.getElementById('r-comment').value,
+        product_id: window.currentProductId, // This will be set by product.js
+        approved: false // Requires admin approval
+      });
+
+      if (error) {
+        msg.textContent = error.message;
+        msg.style.color = '#dc2626';
+        msg.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Submit Review';
+      } else {
+        // Hide the form and show the success message
+        document.getElementById('review-form').style.display = 'none';
+        document.getElementById('review-success').style.display = 'block';
+      }
+    });
   </script>
 </body>
 </html>
