@@ -120,7 +120,7 @@ async function mountCheckout() {
 
     const paystack = new PaystackPop();
     paystack.newTransaction({
-      key: 'pk_live_6b9968065dc0bd4842c97ffa138e49127c862888',
+      key: 'pk_live_4f5e7d35d201c81efd615f2f98ba08c7b049f4ae',
       email: customer.email,
       amount: Math.round(total * 100),
       reference: orderReference,

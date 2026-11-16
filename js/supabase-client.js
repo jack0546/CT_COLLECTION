@@ -2,8 +2,8 @@
    Supabase browser client with JavaScript Caching
 ------------------------------------------------------------------ */
 
-const SUPABASE_URL = 'https://sriduasaznesdcemdtmd.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_2iJDEoJdw8FwC-bQErJFuw_gudotRRq';
+const SUPABASE_URL = 'https://jhsmtrmgyhszynyjyhhq.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_5EW3tfMqvVCmXHWDJZ4epA_0TjRT_YW';
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -13,7 +13,6 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 let productCache = null;
 let cacheTime = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
-
 /* ------------------------------------------------------------------
    HELPER FUNCTIONS
 ------------------------------------------------------------------ */
