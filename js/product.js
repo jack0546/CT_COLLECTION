@@ -4,6 +4,7 @@ let currentSizeId = null;
 let currentQty = 1;
 let activeImageIdx = 0;
 let currentSettings = null;
+let allProductReviews = []; // Store all for the modal
 
 function imagesForColour(colour) {
   return (currentProduct.variant_images || [])
@@ -167,29 +168,14 @@ async function loadRelatedProducts() {
   }
 }
 
-// 🎨 FIXED: Premium Card Design for Reviews
-async function loadReviews() {
-  const { data } = await supabaseClient.from('reviews').select('*')
-    .eq('product_id', currentProduct.id)
-    .eq('approved', true) 
-    .order('created_at', { ascending: false });
-    
-  const list = document.getElementById('reviews-list');
-  if (!data || data.length === 0) {
-    list.innerHTML = '<p class="muted">No reviews yet. Be the first to review this product!</p>';
-    return;
-  }
-  
-  list.innerHTML = data.map(r => `
-    <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin-bottom: 16px;">
+function renderReviewCard(r) {
+  return `
+    <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
       <div style="display:flex; justify-content:space-between; align-items: flex-start; margin-bottom: 12px;">
         <div style="display: flex; gap: 12px; align-items: center;">
-          
-          <!-- Avatar Circle -->
           <div style="width: 40px; height: 40px; border-radius: 50%; background: #f97316; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px;">
             ${escapeHtml(r.customer_name ? r.customer_name.charAt(0).toUpperCase() : 'U')}
           </div>
-          
           <div>
             <strong style="font-size: 15px; color: #0a0a0a;">${escapeHtml(r.customer_name)}</strong>
             <div style="font-size: 12px; color: #737373; margin-top: 2px;">
@@ -197,18 +183,65 @@ async function loadReviews() {
             </div>
           </div>
         </div>
-        
         <span style="color:#f59e0b; font-size: 16px; letter-spacing: 2px;">
           ${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}
         </span>
       </div>
-      
-      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
-        ${escapeHtml(r.comment)}
-      </p>
+      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333;">${escapeHtml(r.comment)}</p>
     </div>
-  `).join('');
+  `;
 }
+
+async function loadReviews() {
+  const { data } = await supabaseClient.from('reviews').select('*')
+    .eq('product_id', currentProduct.id)
+    .eq('approved', true) 
+    .order('created_at', { ascending: false });
+    
+  const list = document.getElementById('reviews-list');
+  const viewAllBtn = document.getElementById('view-all-reviews-btn');
+
+  if (!data || data.length === 0) {
+    list.innerHTML = '<p class="muted">No reviews yet. Be the first to review this product!</p>';
+    if (viewAllBtn) viewAllBtn.style.display = 'none';
+    return;
+  }
+
+  allProductReviews = data;
+
+  if (data.length > 3) {
+    viewAllBtn.style.display = 'block';
+    viewAllBtn.textContent = `View All (${data.length})`;
+  } else {
+    viewAllBtn.style.display = 'none';
+  }
+
+  const reviewsToShow = data.slice(0, 3);
+  list.innerHTML = reviewsToShow.map(renderReviewCard).join('');
+
+  if (viewAllBtn) {
+    viewAllBtn.onclick = openAllReviewsModal;
+  }
+}
+
+function openAllReviewsModal() {
+  const modalList = document.getElementById('all-reviews-list');
+  modalList.innerHTML = allProductReviews.map(renderReviewCard).join('');
+  document.getElementById('all-reviews-modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAllReviewsModal() {
+  document.getElementById('all-reviews-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// Close modal on outside click
+document.getElementById('all-reviews-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'all-reviews-modal') {
+    closeAllReviewsModal();
+  }
+});
 
 async function mountProduct() {
   const slug = qs('slug');
