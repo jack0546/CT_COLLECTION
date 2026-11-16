@@ -29,7 +29,6 @@ function renderGallery() {
   if (!imgs.length) imgs.push('https://placehold.co/600x600?text=No+Image');
   if (activeImageIdx >= imgs.length) activeImageIdx = 0;
   
-  // FIXED: Added width and height to prevent layout shift
   document.getElementById('pd-main-image').innerHTML =
     `<img src="${imgs[activeImageIdx]}" alt="${escapeHtml(currentProduct.name)} — ${escapeHtml(currentColour)}" loading="lazy" width="600" height="600">`;
     
@@ -163,14 +162,13 @@ async function loadRelatedProducts() {
     document.getElementById('related-grid').innerHTML = related.map(p => {
       const img = p.variant_images?.[0]?.image_url || 'https://placehold.co/400x500?text=No+Image';
       const price = p.sale_price ?? p.base_price;
-      // FIXED: Added width and height for layout shift
       return `<a class="product-card" href="product.html?slug=${encodeURIComponent(p.slug)}"><div class="thumb"><img src="${img}" alt="${escapeHtml(p.name)}" loading="lazy" width="400" height="500"></div><h3>${p.name}</h3><div class="price">${formatMoney(price, currentSettings.currency_symbol)}</div></a>`;
     }).join('');
   }
 }
 
+// 🎨 FIXED: Premium Card Design for Reviews
 async function loadReviews() {
-  // FIXED: Only load approved reviews!
   const { data } = await supabaseClient.from('reviews').select('*')
     .eq('product_id', currentProduct.id)
     .eq('approved', true) 
@@ -181,18 +179,33 @@ async function loadReviews() {
     list.innerHTML = '<p class="muted">No reviews yet. Be the first to review this product!</p>';
     return;
   }
+  
   list.innerHTML = data.map(r => `
-    <div style="border-bottom: 1px solid #eee; padding: 12px 0;">
-      <div style="display:flex; justify-content:space-between; align-items: flex-start;">
-        <div>
-          <strong>${escapeHtml(r.customer_name)}</strong>
-          <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
-            ${new Date(r.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+    <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin-bottom: 16px;">
+      <div style="display:flex; justify-content:space-between; align-items: flex-start; margin-bottom: 12px;">
+        <div style="display: flex; gap: 12px; align-items: center;">
+          
+          <!-- Avatar Circle -->
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: #f97316; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px;">
+            ${escapeHtml(r.customer_name ? r.customer_name.charAt(0).toUpperCase() : 'U')}
+          </div>
+          
+          <div>
+            <strong style="font-size: 15px; color: #0a0a0a;">${escapeHtml(r.customer_name)}</strong>
+            <div style="font-size: 12px; color: #737373; margin-top: 2px;">
+              ${new Date(r.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </div>
           </div>
         </div>
-        <span style="color:#f59e0b; font-size: 18px;">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span>
+        
+        <span style="color:#f59e0b; font-size: 16px; letter-spacing: 2px;">
+          ${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}
+        </span>
       </div>
-      <p style="margin: 8px 0 0; font-size:14px;">${escapeHtml(r.comment)}</p>
+      
+      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
+        ${escapeHtml(r.comment)}
+      </p>
     </div>
   `).join('');
 }
@@ -210,7 +223,6 @@ async function mountProduct() {
     return;
   }
 
-  // GLOBAL VARIABLE FOR THE REVIEW FORM
   window.currentProductId = currentProduct.id;
 
   const colours = getColourList();
