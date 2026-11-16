@@ -15,7 +15,6 @@ async function mountCheckout() {
   let currentUser = null;
   let userProfile = null;
 
-  // 1. CHECK IF USER IS LOGGED IN
   const { data: { user } } = await supabaseClient.auth.getUser();
   
   if (user) {
@@ -28,11 +27,7 @@ async function mountCheckout() {
       document.getElementById('logged-in-info').style.display = 'block';
       
       const displayAddress = [
-        profile.region,
-        profile.city,
-        profile.suburb,
-        profile.street_name,
-        profile.landmark
+        profile.region, profile.city, profile.suburb, profile.street_name, profile.landmark
       ].filter(Boolean).join(' - ');
 
       document.getElementById('display-name').textContent = `${profile.first_name} ${profile.last_name}`;
@@ -48,11 +43,7 @@ async function mountCheckout() {
   function getCustomerData() {
     if (currentUser && userProfile) {
       const formattedAddress = [
-        userProfile.region,
-        userProfile.city,
-        userProfile.suburb,
-        userProfile.street_name,
-        userProfile.landmark
+        userProfile.region, userProfile.city, userProfile.suburb, userProfile.street_name, userProfile.landmark
       ].filter(Boolean).join(' - ');
 
       return {
@@ -85,34 +76,43 @@ async function mountCheckout() {
 
     const orderReference = 'ORD-' + Date.now();
 
-    // 🔴 CRITICAL FIX: Format the items to match what the database trigger expects
+    // 🔴 THE FIX: Map item.productId to product_id
     const formattedOrderItems = items.map(item => ({
-      product_id: item.product_id, // Must exist from product.js!
-      productName: item.name,
-      colourName: item.colour,
+      product_id: item.productId || item.product_id, // Handles both camelCase and snake_case
+      productName: item.productName || item.name,
+      colourName: item.colourName || item.colour,
       size: item.size,
       quantity: item.quantity,
       unitPrice: item.unitPrice
     }));
 
-    try {
-      await supabaseClient.from('orders').insert({
-        order_reference: orderReference,
-        customer_name: customer.name,
-        customer_email: customer.email,
-        customer_phone: customer.phone,
-        delivery_location: customer.location,
-        delivery_address: customer.address,
-        notes: customer.notes,
-        order_items: formattedOrderItems, // Send the formatted items
-        subtotal: total,
-        total_amount: total,
-        status: 'pending',
-        payment_status: 'unpaid',
-        user_id: customer.user_id 
-      });
-    } catch (err) {
-      alert('Could not save order. Please try again. ' + err.message);
+    // Check if any product_id is missing before sending to DB
+    if (formattedOrderItems.some(i => !i.product_id)) {
+      console.error("Cart items missing productId:", items);
+      alert('There is an error with your cart items. Please clear your cart and add the product again.');
+      paystackBtn.disabled = false;
+      paystackBtn.textContent = '💳 Pay Now (Secure)';
+      return;
+    }
+
+    const { error } = await supabaseClient.from('orders').insert({
+      order_reference: orderReference,
+      customer_name: customer.name,
+      customer_email: customer.email,
+      customer_phone: customer.phone,
+      delivery_location: customer.location,
+      delivery_address: customer.address,
+      notes: customer.notes,
+      order_items: formattedOrderItems,
+      subtotal: total,
+      total_amount: total,
+      status: 'pending',
+      payment_status: 'unpaid',
+      user_id: customer.user_id 
+    });
+
+    if (error) {
+      alert('Could not save order. Please try again.\n\nError: ' + error.message);
       paystackBtn.disabled = false;
       paystackBtn.textContent = '💳 Pay Now (Secure)';
       return;
