@@ -29,13 +29,12 @@ function renderGallery() {
   if (!imgs.length) imgs.push('https://placehold.co/600x600?text=No+Image');
   if (activeImageIdx >= imgs.length) activeImageIdx = 0;
   
-  // LAZY LOADING ADDED TO MAIN IMAGE
+  // FIXED: Added width and height to prevent layout shift
   document.getElementById('pd-main-image').innerHTML =
-    `<img src="${imgs[activeImageIdx]}" alt="${escapeHtml(currentProduct.name)} — ${escapeHtml(currentColour)}" loading="lazy">`;
+    `<img src="${imgs[activeImageIdx]}" alt="${escapeHtml(currentProduct.name)} — ${escapeHtml(currentColour)}" loading="lazy" width="600" height="600">`;
     
-  // LAZY LOADING ADDED TO THUMBNAILS
   document.getElementById('pd-thumbs').innerHTML = imgs.map((src, i) =>
-    `<button class="${i === activeImageIdx ? 'active' : ''}" data-idx="${i}"><img src="${src}" alt="" loading="lazy"></button>`
+    `<button class="${i === activeImageIdx ? 'active' : ''}" data-idx="${i}"><img src="${src}" alt="" loading="lazy" width="72" height="72"></button>`
   ).join('');
   
   document.querySelectorAll('#pd-thumbs button').forEach(btn => {
@@ -161,17 +160,22 @@ async function loadRelatedProducts() {
     .eq('category_id', currentProduct.category_id).neq('id', currentProduct.id).eq('status', 'active').limit(4);
   if (related && related.length > 0) {
     document.getElementById('related-section').style.display = 'block';
-    // LAZY LOADING ADDED TO RELATED PRODUCTS
     document.getElementById('related-grid').innerHTML = related.map(p => {
       const img = p.variant_images?.[0]?.image_url || 'https://placehold.co/400x500?text=No+Image';
       const price = p.sale_price ?? p.base_price;
-      return `<a class="product-card" href="product.html?slug=${encodeURIComponent(p.slug)}"><div class="thumb"><img src="${img}" alt="${escapeHtml(p.name)}" loading="lazy"></div><h3>${escapeHtml(p.name)}</h3><div class="price">${formatMoney(price, currentSettings.currency_symbol)}</div></a>`;
+      // FIXED: Added width and height for layout shift
+      return `<a class="product-card" href="product.html?slug=${encodeURIComponent(p.slug)}"><div class="thumb"><img src="${img}" alt="${escapeHtml(p.name)}" loading="lazy" width="400" height="500"></div><h3>${p.name}</h3><div class="price">${formatMoney(price, currentSettings.currency_symbol)}</div></a>`;
     }).join('');
   }
 }
 
 async function loadReviews() {
-  const { data } = await supabaseClient.from('reviews').select('*').eq('product_id', currentProduct.id).order('created_at', { ascending: false });
+  // FIXED: Only load approved reviews!
+  const { data } = await supabaseClient.from('reviews').select('*')
+    .eq('product_id', currentProduct.id)
+    .eq('approved', true) 
+    .order('created_at', { ascending: false });
+    
   const list = document.getElementById('reviews-list');
   if (!data || data.length === 0) {
     list.innerHTML = '<p class="muted">No reviews yet. Be the first to review this product!</p>';
@@ -205,6 +209,10 @@ async function mountProduct() {
     document.getElementById('product-root').innerHTML = `<div class="empty-state"><h3>Product not found</h3><a href="shop.html">Back to shop</a></div>`;
     return;
   }
+
+  // GLOBAL VARIABLE FOR THE REVIEW FORM
+  window.currentProductId = currentProduct.id;
+
   const colours = getColourList();
   currentColour = colours[0]?.name || null;
   document.title = `${currentProduct.name} — ${currentSettings.store_name}`;
@@ -306,20 +314,6 @@ async function mountProduct() {
     } else {
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     }
-  });
-
-  document.getElementById('review-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('r-name').value.trim();
-    const rating = Number(document.getElementById('r-rating').value);
-    const comment = document.getElementById('r-comment').value.trim();
-    
-    await supabaseClient.from('reviews').insert({ product_id: currentProduct.id, customer_name: name, rating, comment });
-    
-    const msg = document.getElementById('r-msg');
-    msg.style.display = 'block'; msg.style.color = '#16a34a';
-    msg.textContent = 'Thank you! Your review has been submitted for approval.';
-    document.getElementById('review-form').reset();
   });
 }
 

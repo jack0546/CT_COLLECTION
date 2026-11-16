@@ -39,7 +39,6 @@
 
       <!-- The Review Form -->
       <form id="review-form" style="display: none;">
-        <div class="form-field"><label>Your Name</label><input id="r-name" required /></div>
         <div class="form-field"><label>Rating</label>
           <select id="r-rating" required>
             <option value="5">5 Stars - Excellent</option>
@@ -55,10 +54,14 @@
       </form>
       
       <!-- Success Message (Hidden by default) -->
-      <div id="review-success" style="display: none; text-align: center; padding: 20px;">
-        <div style="font-size: 40px; margin-bottom: 10px;">🎉</div>
-        <h4 style="color: #166534; margin: 0 0 10px;">Thanks for the review!</h4>
-        <p class="muted">Your feedback helps other customers shop with confidence.</p>
+      <div id="review-success" style="display: none; text-align: center; padding: 30px 20px; border: 1px solid #e5e5e5; border-radius: 12px; background: #fafafa;">
+        <div style="width: 50px; height: 50px; background: #dcfce7; color: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <h4 style="color: #166534; margin: 0 0 8px; font-size: 18px;">Thank you for your review</h4>
+        <p class="muted" style="margin: 0;">Your feedback has been submitted and is awaiting approval.</p>
       </div>
     </div>
   </section>
@@ -79,7 +82,7 @@
       });
     }
 
-    // Check if user is logged in
+    // Check if user is logged in and auto-fill name
     (async () => {
       const { data: { session } } = await supabaseClient.auth.getSession();
       const form = document.getElementById('review-form');
@@ -103,12 +106,21 @@
       btn.disabled = true;
       btn.textContent = 'Submitting...';
 
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) return alert('You must be logged in.');
+
+      // Fetch the user's profile to get their name
+      const { data: profile } = await supabaseClient.from('profiles').select('first_name, last_name').eq('id', user.id).single();
+      
+      const customerName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Verified Customer';
+
       const { error } = await supabaseClient.from('reviews').insert({
-        customer_name: document.getElementById('r-name').value,
+        customer_name: customerName,
         rating: Number(document.getElementById('r-rating').value),
         comment: document.getElementById('r-comment').value,
-        product_id: window.currentProductId, // This will be set by product.js
-        approved: false // Requires admin approval
+        product_id: window.currentProductId,
+        user_id: user.id,
+        approved: false
       });
 
       if (error) {
@@ -118,7 +130,6 @@
         btn.disabled = false;
         btn.textContent = 'Submit Review';
       } else {
-        // Hide the form and show the success message
         document.getElementById('review-form').style.display = 'none';
         document.getElementById('review-success').style.display = 'block';
       }

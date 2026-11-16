@@ -85,6 +85,16 @@ async function mountCheckout() {
 
     const orderReference = 'ORD-' + Date.now();
 
+    // 🔴 CRITICAL FIX: Format the items to match what the database trigger expects
+    const formattedOrderItems = items.map(item => ({
+      product_id: item.product_id, // Must exist from product.js!
+      productName: item.name,
+      colourName: item.colour,
+      size: item.size,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice
+    }));
+
     try {
       await supabaseClient.from('orders').insert({
         order_reference: orderReference,
@@ -94,15 +104,15 @@ async function mountCheckout() {
         delivery_location: customer.location,
         delivery_address: customer.address,
         notes: customer.notes,
-        order_items: items,
+        order_items: formattedOrderItems, // Send the formatted items
         subtotal: total,
         total_amount: total,
-        status: 'pending', // Always pending initially
-        payment_status: 'unpaid', // Always unpaid initially
+        status: 'pending',
+        payment_status: 'unpaid',
         user_id: customer.user_id 
       });
     } catch (err) {
-      alert('Could not save order. Please try again.');
+      alert('Could not save order. Please try again. ' + err.message);
       paystackBtn.disabled = false;
       paystackBtn.textContent = '💳 Pay Now (Secure)';
       return;

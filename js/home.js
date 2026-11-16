@@ -21,7 +21,8 @@ function renderProductCard(product) {
   return `
     <div class="product-card">
       <a href="product.html?slug=${encodeURIComponent(product.slug)}" class="thumb">
-        <img src="${img}" alt="${escapeHtml(product.name)}" loading="lazy">
+        <!-- FIXED: Added width and height to prevent layout shift -->
+        <img src="${img}" alt="${escapeHtml(product.name)}" loading="lazy" width="400" height="500">
         ${hasSale ? '<span class="badge-sale">Sale</span>' : ''}
         ${!inStock ? '<span class="badge-oos">Out of Stock</span>' : ''}
       </a>
@@ -57,11 +58,11 @@ function renderProductCard(product) {
 async function mountHome() {
   const cats = await loadCategories();
   
-  // ADDED loading="lazy" to category images
+  // FIXED: Added width and height to category images
   document.getElementById('category-grid').innerHTML = cats.slice(0, 12).map(c => `
     <a class="category-card" href="shop.html?category=${encodeURIComponent(c.slug)}">
       <div class="thumb">
-        ${c.image_url ? `<img src="${c.image_url}" alt="${escapeHtml(c.name)}" loading="lazy">` : ''}
+        ${c.image_url ? `<img src="${c.image_url}" alt="${escapeHtml(c.name)}" loading="lazy" width="300" height="300">` : ''}
       </div>
       <span>${escapeHtml(c.name)}</span>
     </a>

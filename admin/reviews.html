@@ -17,7 +17,7 @@
           <table class="admin-table" id="reviews-table">
             <thead>
               <tr>
-                <th>Date</th> <!-- ADDED -->
+                <th>Date</th>
                 <th>Product</th>
                 <th>Customer</th>
                 <th>Rating</th>
@@ -48,7 +48,8 @@
       const tbody = document.querySelector('#reviews-table tbody');
       
       if (error) {
-        tbody.innerHTML = `<tr><td colspan="7" class="muted">Error: ${error.message}</td></tr>`;
+        console.error("Load Error:", error);
+        tbody.innerHTML = `<tr><td colspan="7" class="muted" style="color:red;">Error: ${error.message}</td></tr>`;
         return;
       }
       if (!data || data.length === 0) {
@@ -75,16 +76,25 @@
 
       tbody.querySelectorAll('[data-approve]').forEach(b => {
         b.addEventListener('click', async () => {
-          await supabaseClient.from('reviews').update({ approved: true }).eq('id', b.dataset.approve);
-          loadReviews();
+          b.disabled = true;
+          b.textContent = '...';
+          const { error } = await supabaseClient.from('reviews').update({ approved: true }).eq('id', b.dataset.approve);
+          if (error) {
+            alert('Failed to approve: ' + error.message);
+            b.disabled = false;
+            b.textContent = 'Approve';
+          } else {
+            loadReviews();
+          }
         });
       });
 
       tbody.querySelectorAll('[data-del]').forEach(b => {
         b.addEventListener('click', async () => {
           if (!confirm('Delete this review?')) return;
-          await supabaseClient.from('reviews').delete().eq('id', b.dataset.del);
-          loadReviews();
+          const { error } = await supabaseClient.from('reviews').delete().eq('id', b.dataset.del);
+          if (error) alert('Failed to delete: ' + error.message);
+          else loadReviews();
         });
       });
     }

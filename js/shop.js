@@ -10,7 +10,7 @@ const state = {
   priceMax: 2000,
   sort: 'newest',
   page: 0,
-  limit: 20, // Load 20 products at a time
+  limit: 20, 
   hasMore: true,
   isLoading: false
 };
@@ -41,7 +41,8 @@ function renderProductCard(product) {
   return `
     <div class="product-card">
       <a href="product.html?slug=${encodeURIComponent(product.slug)}" class="thumb">
-        <img src="${img}" alt="${escapeHtml(product.name)}" loading="lazy">
+        <!-- FIXED: Added width and height to prevent layout shift -->
+        <img src="${img}" alt="${escapeHtml(product.name)}" loading="lazy" width="400" height="500">
         
         ${hasSale ? `
           <div class="badge-sale">
@@ -85,24 +86,11 @@ function renderProductCard(product) {
 
 function populateFilters() {
   const catSelect = document.getElementById('f-category');
-  // Clear existing options except the first one
   catSelect.innerHTML = '<option value="">All categories</option>';
   for (const c of state.categories) {
     catSelect.insertAdjacentHTML('beforeend', `<option value="${c.slug}">${escapeHtml(c.name)}</option>`);
   }
   catSelect.value = state.category;
-
-  const colourSel = document.getElementById('f-colour');
-  const sizeSel = document.getElementById('f-size');
-  
-  // NOTE: With server-side pagination, we can't easily extract ALL unique colours/sizes 
-  // from just the first 20 products. For now, we will leave these as static options 
-  // or fetch them via a separate lightweight RPC if needed. 
-  // For simplicity, we'll keep the existing logic but only run it once.
-  if (colourSel.options.length <= 1 && sizeSel.options.length <= 1) {
-    // If you have a separate table for colours/sizes, fetch them here. 
-    // Otherwise, these will be incomplete if you have many products.
-  }
 
   document.getElementById('f-search').value = state.q;
 }
@@ -123,10 +111,11 @@ function renderCategories() {
     if (toolbar) toolbar.style.display = 'none';
     if (loadMoreBtn) loadMoreBtn.style.display = 'none';
 
+    // FIXED: Added width and height to category images
     catGrid.innerHTML = state.categories.map(c => `
       <a class="category-card" href="shop.html?category=${encodeURIComponent(c.slug)}">
         <div class="thumb" style="aspect-ratio: 1/1; background: #f5f5f5; border-radius: 12px; overflow: hidden;">
-          ${c.image_url ? `<img src="${c.image_url}" alt="${escapeHtml(c.name)}" style="width:100%; height:100%; object-fit:cover;" loading="lazy">` : ''}
+          ${c.image_url ? `<img src="${c.image_url}" alt="${escapeHtml(c.name)}" style="width:100%; height:100%; object-fit:cover;" loading="lazy" width="300" height="300">` : ''}
         </div>
         <span style="display:block; text-align:center; margin-top:8px; font-weight:500;">${escapeHtml(c.name)}</span>
       </a>
@@ -141,7 +130,6 @@ function renderCategories() {
   }
 }
 
-// 2. THE NEW SERVER-SIDE FETCHING LOGIC
 async function fetchProducts(reset = false) {
   if (state.isLoading) return;
   state.isLoading = true;
@@ -163,16 +151,14 @@ async function fetchProducts(reset = false) {
     .select('id, name, slug, base_price, sale_price, created_at, categories(name, slug), variants(colour_name, colour_code, size, stock_quantity), variant_images(image_url, colour_name)', { count: 'exact' })
     .eq('status', 'active');
 
-  // Server-side filtering
   if (state.q) query = query.ilike('name', `%${state.q}%`);
   if (state.category) query = query.eq('categories.slug', state.category);
   if (state.view === 'sale') query = query.not('sale_price', 'is', null);
   
-  // Sorting
   if (state.sort === 'price-asc') query = query.order('base_price', { ascending: true });
   else if (state.sort === 'price-desc') query = query.order('base_price', { ascending: false });
   else if (state.sort === 'name') query = query.order('name', { ascending: true });
-  else query = query.order('created_at', { ascending: false }); // Default newest
+  else query = query.order('created_at', { ascending: false });
 
   query = query.range(from, to);
 
@@ -193,7 +179,7 @@ async function fetchProducts(reset = false) {
   
   if (reset) {
     document.getElementById('result-count').textContent = `${count || 0} products`;
-    grid.innerHTML = ''; // Clear existing
+    grid.innerHTML = ''; 
   }
 
   if (state.products.length === 0) {
@@ -214,38 +200,32 @@ async function fetchProducts(reset = false) {
   state.isLoading = false;
 }
 
-// 3. DEBOUNCE (Prevents searching the DB on every single keystroke)
 let searchTimeout;
 function debounceSearch(val) {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
     state.q = val;
     fetchProducts(true);
-  }, 400); // Waits 400ms after user stops typing
+  }, 400);
 }
 
 async function mountShop() {
   state.categories = await loadCategories();
   populateFilters();
   
-  // Initial fetch
   await fetchProducts(true);
   renderCategories();
 
-  // Event Listeners
   document.getElementById('f-search').addEventListener('input', e => debounceSearch(e.target.value));
   document.getElementById('f-category').addEventListener('change', e => { state.category = e.target.value; fetchProducts(true); });
   document.getElementById('f-price').addEventListener('input', e => {
     state.priceMax = Number(e.target.value);
     document.getElementById('price-label').textContent = `₵ ${state.priceMax}`;
-    // Note: Price filtering is client-side for now, so we just filter the loaded 20
-    // For 5000 products, you should add .lte('base_price', state.priceMax) to the query above.
   });
   document.getElementById('f-colour').addEventListener('change', e => { state.colour = e.target.value; fetchProducts(true); });
   document.getElementById('f-size').addEventListener('change', e => { state.size = e.target.value; fetchProducts(true); });
   document.getElementById('f-sort').addEventListener('change', e => { state.sort = e.target.value; fetchProducts(true); });
 
-  // Load More Button Listener
   const btn = document.getElementById('load-more-btn');
   if (btn) {
     btn.addEventListener('click', () => fetchProducts(false));
