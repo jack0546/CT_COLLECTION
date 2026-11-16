@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>My Account — Great Addesam</title>
+  <title>My Account — CT Collection</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/styles.css" />
   <script src="https://js.paystack.co/v2/inline.js"></script>
@@ -305,6 +305,7 @@
       }
     }
 
+    // FIXED: Manually update the screen after saving
     document.getElementById('profile-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('update-btn');
@@ -327,17 +328,34 @@
       const { error } = await supabaseClient.from('profiles').update(updates).eq('id', currentUser.id);
 
       if (error) {
-        msg.textContent = 'Error updating profile. Please try again.';
+        msg.textContent = 'Error updating profile: ' + error.message;
         msg.style.color = '#dc2626';
+        msg.style.display = 'block';
         btn.disabled = false;
         btn.textContent = 'Save Changes';
       } else {
-        await loadProfile(); 
+        // Manually update the screen text so it updates instantly
+        userProfile = { ...userProfile, ...updates };
+        
+        document.getElementById('view-name').textContent = `${updates.first_name} ${updates.last_name}`;
+        document.getElementById('view-phone').textContent = updates.phone || 'Not set';
+        
+        const fullAddress = [
+          updates.region, updates.city, updates.suburb, updates.street_name, updates.landmark
+        ].filter(Boolean).join(' - ');
+        document.getElementById('view-full-address').textContent = fullAddress || 'Not set';
+
         msg.textContent = '✓ Address updated successfully!';
         msg.style.color = '#16a34a';
-        btn.disabled = false;
-        btn.textContent = 'Save Changes';
-        setTimeout(() => { toggleEditMode(false); msg.textContent = ''; }, 1000);
+        msg.style.display = 'block';
+        
+        setTimeout(() => { 
+          toggleEditMode(false); 
+          msg.textContent = ''; 
+          msg.style.display = 'none';
+          btn.disabled = false;
+          btn.textContent = 'Save Changes';
+        }, 1000);
       }
     });
 

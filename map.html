@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Find Us — Great Addesam</title>
+  <title>Find Us — CT Collection</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/styles.css" />
   
@@ -50,7 +50,7 @@
   <script>
     const SHOP_LAT = 6.073850779405178;
     const SHOP_LNG = -0.27004477930335286;  
-    const SHOP_NAME = "Great Addesam Store";
+    const SHOP_NAME = "CT Collection Store";
 
     // 1. Initialize the Map
     const map = L.map('map').setView([SHOP_LAT, SHOP_LNG], 14);
@@ -85,7 +85,7 @@
       if (navigator.permissions) {
         navigator.permissions.query({ name: 'geolocation' }).then((result) => {
           if (result.state === 'denied') {
-            errDiv.innerHTML = "❌ <strong>Permission Denied:</strong><br><br>You have blocked location access for this app.<br><br><strong>To fix this:</strong><br>1. Go to your phone's Settings.<br>2. Find 'Apps' or 'Applications' and locate 'Great Addesam'.<br>3. Go to 'Permissions' and allow <strong>Location</strong>.<br>4. Refresh this page.";
+            errDiv.innerHTML = "❌ <strong>Permission Denied:</strong><br><br>You have blocked location access for this app.<br><br><strong>To fix this:</strong><br>1. Go to your phone's Settings.<br>2. Find 'Apps' or 'Applications' and locate 'CT Collection'.<br>3. Go to 'Permissions' and allow <strong>Location</strong>.<br>4. Refresh this page.";
             errDiv.style.display = 'block';
             return;
           }
