@@ -226,7 +226,7 @@
 
       const paystack = new PaystackPop();
       paystack.newTransaction({
-        key: 'pk_live_4f5e7d35d201c81efd615f2f98ba08c7b049f4ae',
+        key: 'pk_live_4f5e7d35d201c81efd615f2f98ba08c7b049f4ae', // 🔴 REPLACE WITH NEW CLIENT'S PUBLIC KEY
         email: userProfile.email,
         amount: Math.round(amount * 100),
         reference: newRef,
@@ -250,21 +250,23 @@
     }
 
     async function loadProfile() {
+      // Use .single() instead of .maybeSingle()
       const { data: profile, error } = await supabaseClient
         .from('profiles')
         .select('*')
         .eq('id', currentUser.id)
-        .maybeSingle();
+        .single();
       
       const loadingText = document.getElementById('profile-loading');
       
       if (error) {
-        loadingText.textContent = "Error loading profile.";
+        console.error("Profile error:", error);
+        loadingText.textContent = "Error loading profile: " + error.message;
         return;
       }
       
       if (!profile) {
-        loadingText.textContent = "No profile found. Please contact support.";
+        loadingText.textContent = "No profile found.";
         return;
       }
 
@@ -305,7 +307,6 @@
       }
     }
 
-    // FIXED: Manually update the screen after saving
     document.getElementById('profile-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('update-btn');

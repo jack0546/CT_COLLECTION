@@ -19,7 +19,7 @@ async function mountCheckout() {
   
   if (user) {
     currentUser = user;
-    const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', user.id).single();
+    const { data: profile, error } = await supabaseClient.from('profiles').select('*').eq('id', user.id).single();
     
     if (profile) {
       userProfile = profile;
@@ -30,9 +30,13 @@ async function mountCheckout() {
         profile.region, profile.city, profile.suburb, profile.street_name, profile.landmark
       ].filter(Boolean).join(' - ');
 
-      document.getElementById('display-name').textContent = `${profile.first_name} ${profile.last_name}`;
-      document.getElementById('display-phone').textContent = profile.phone;
-      document.getElementById('display-address').textContent = displayAddress;
+      // FIXED: Show "Not set" if the fields are empty
+      document.getElementById('display-name').textContent = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Not set';
+      document.getElementById('display-phone').textContent = profile.phone || 'Not set';
+      document.getElementById('display-address').textContent = displayAddress || 'Not set';
+    } else {
+      console.error("Profile error:", error);
+      alert("Could not load your profile. Please check your account page.");
     }
   } else {
     alert('Please log in or create an account to complete your order.');
@@ -47,11 +51,11 @@ async function mountCheckout() {
       ].filter(Boolean).join(' - ');
 
       return {
-        name: `${userProfile.first_name} ${userProfile.last_name}`,
+        name: `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || 'Customer',
         email: userProfile.email,
-        phone: userProfile.phone,
-        location: `${userProfile.city}, ${userProfile.region}`,
-        address: formattedAddress,
+        phone: userProfile.phone || 'N/A',
+        location: `${userProfile.city || ''}, ${userProfile.region || ''}`.trim() || 'N/A',
+        address: formattedAddress || 'N/A',
         notes: document.getElementById('c-notes').value.trim() || '',
         user_id: currentUser.id
       };
@@ -76,9 +80,8 @@ async function mountCheckout() {
 
     const orderReference = 'ORD-' + Date.now();
 
-    // 🔴 THE FIX: Map item.productId to product_id
     const formattedOrderItems = items.map(item => ({
-      product_id: item.productId || item.product_id, // Handles both camelCase and snake_case
+      product_id: item.productId || item.product_id,
       productName: item.productName || item.name,
       colourName: item.colourName || item.colour,
       size: item.size,
@@ -86,7 +89,6 @@ async function mountCheckout() {
       unitPrice: item.unitPrice
     }));
 
-    // Check if any product_id is missing before sending to DB
     if (formattedOrderItems.some(i => !i.product_id)) {
       console.error("Cart items missing productId:", items);
       alert('There is an error with your cart items. Please clear your cart and add the product again.');
@@ -120,7 +122,7 @@ async function mountCheckout() {
 
     const paystack = new PaystackPop();
     paystack.newTransaction({
-      key: 'pk_live_4f5e7d35d201c81efd615f2f98ba08c7b049f4ae',
+      key: 'pk_live_4f5e7d35d201c81efd615f2f98ba08c7b049f4ae', // 🔴 REPLACE WITH NEW CLIENT'S PUBLIC KEY
       email: customer.email,
       amount: Math.round(total * 100),
       reference: orderReference,
