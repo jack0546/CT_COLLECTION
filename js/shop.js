@@ -60,8 +60,8 @@ function renderProductCard(product) {
       
       <div class="product-price-row">
         <div class="product-price">
-          ${formatMoney(price)}
-          ${hasSale ? `<del>${formatMoney(product.base_price)}</del>` : ''}
+          ${formatMoney(price, 'GHC')}
+          ${hasSale ? `<del>${formatMoney(product.base_price, 'GHC')}</del>` : ''}
           <span class="sold-count">🔥 ${soldDisplay} sold</span>
         </div>
         <button class="card-cart-btn" onclick="location.href='product.html?slug=${encodeURIComponent(product.slug)}'">
@@ -146,9 +146,14 @@ async function fetchProducts(reset = false) {
   const from = state.page * state.limit;
   const to = from + state.limit - 1;
 
+  // FIXED: Using 'categories!inner' to allow filtering by joined table slug properly
+  const selectStr = state.category 
+    ? 'id, name, slug, base_price, sale_price, created_at, categories!inner(name, slug), variants(colour_name, colour_code, size, stock_quantity), variant_images(image_url, colour_name)'
+    : 'id, name, slug, base_price, sale_price, created_at, categories(name, slug), variants(colour_name, colour_code, size, stock_quantity), variant_images(image_url, colour_name)';
+
   let query = supabaseClient
     .from('products')
-    .select('id, name, slug, base_price, sale_price, created_at, categories(name, slug), variants(colour_name, colour_code, size, stock_quantity), variant_images(image_url, colour_name)', { count: 'exact' })
+    .select(selectStr, { count: 'exact' })
     .eq('status', 'active');
 
   if (state.q) query = query.ilike('name', `%${state.q}%`);
@@ -210,6 +215,11 @@ function debounceSearch(val) {
 }
 
 async function mountShop() {
+  // FIXED: Automatically show category grid if landing on shop.html with no specific filter
+  if (!state.category && !state.q && !state.view) {
+    state.view = 'categories';
+  }
+
   state.categories = await loadCategories();
   populateFilters();
   
@@ -217,11 +227,19 @@ async function mountShop() {
   renderCategories();
 
   document.getElementById('f-search').addEventListener('input', e => debounceSearch(e.target.value));
-  document.getElementById('f-category').addEventListener('change', e => { state.category = e.target.value; fetchProducts(true); });
+  
+  document.getElementById('f-category').addEventListener('change', e => { 
+    state.category = e.target.value; 
+    if (state.category) state.view = ''; // Switch to product view when filtering
+    fetchProducts(true); 
+    renderCategories();
+  });
+  
   document.getElementById('f-price').addEventListener('input', e => {
     state.priceMax = Number(e.target.value);
-    document.getElementById('price-label').textContent = `₵ ${state.priceMax}`;
+    document.getElementById('price-label').textContent = `GHC ${state.priceMax}`;
   });
+  
   document.getElementById('f-colour').addEventListener('change', e => { state.colour = e.target.value; fetchProducts(true); });
   document.getElementById('f-size').addEventListener('change', e => { state.size = e.target.value; fetchProducts(true); });
   document.getElementById('f-sort').addEventListener('change', e => { state.sort = e.target.value; fetchProducts(true); });

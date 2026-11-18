@@ -32,8 +32,8 @@ function renderProductCard(product) {
       
       <div class="product-price-row">
         <div class="product-price">
-          ${formatMoney(price)}
-          ${hasSale ? `<del>${formatMoney(product.base_price)}</del>` : ''}
+          ${formatMoney(price, 'GHC')}
+          ${hasSale ? `<del>${formatMoney(product.base_price, 'GHC')}</del>` : ''}
         </div>
         <button class="card-cart-btn" onclick="location.href='product.html?slug=${encodeURIComponent(product.slug)}'">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
@@ -58,25 +58,30 @@ function renderProductCard(product) {
 async function mountHome() {
   const cats = await loadCategories();
   
-  // FIXED: Added width and height to category images
-  document.getElementById('category-grid').innerHTML = cats.slice(0, 12).map(c => `
-    <a class="category-card" href="shop.html?category=${encodeURIComponent(c.slug)}">
-      <div class="thumb">
-        ${c.image_url ? `<img src="${c.image_url}" alt="${escapeHtml(c.name)}" loading="lazy" width="300" height="300">` : ''}
-      </div>
-      <span>${escapeHtml(c.name)}</span>
-    </a>
-  `).join('');
+  const catGrid = document.getElementById('category-grid');
+  if (catGrid) {
+    // FIXED: Added width and height to category images
+    catGrid.innerHTML = cats.slice(0, 12).map(c => `
+      <a class="category-card" href="shop.html?category=${encodeURIComponent(c.slug)}">
+        <div class="thumb">
+          ${c.image_url ? `<img src="${c.image_url}" alt="${escapeHtml(c.name)}" loading="lazy" width="300" height="300">` : ''}
+        </div>
+        <span>${escapeHtml(c.name)}</span>
+      </a>
+    `).join('');
+  }
 
   const featured = await loadProducts({ featured: true, limit: 8 });
-  document.getElementById('featured-grid').innerHTML =
-    featured.length ? featured.map(renderProductCard).join('') :
-    '<p class="muted">No featured products yet.</p>';
+  const featuredGrid = document.getElementById('featured-grid');
+  if (featuredGrid) {
+    featuredGrid.innerHTML = featured.length ? featured.map(renderProductCard).join('') : '<p class="muted">No featured products yet.</p>';
+  }
 
   const newest = await loadProducts({ order: 'newest', limit: 8 });
-  document.getElementById('new-grid').innerHTML =
-    newest.length ? newest.map(renderProductCard).join('') :
-    '<p class="muted">No products yet.</p>';
+  const newGrid = document.getElementById('new-grid');
+  if (newGrid) {
+    newGrid.innerHTML = newest.length ? newest.map(renderProductCard).join('') : '<p class="muted">No products yet.</p>';
+  }
 }
 
 mountHome();
