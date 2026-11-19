@@ -22,15 +22,17 @@
     return currentPath === page ? 'active-link' : '';
   }
 
-  // Inject Custom CSS for the Header
+  // Inject Custom CSS for the Header (Fixed for Mobile Stickiness & Purple Theme)
   const style = document.createElement('style');
   style.innerHTML = `
-    .site-header {
+     .site-header {
       background: #fff;
-      border-bottom: 1px solid #eaeaea;
-      position: sticky;
+      border-bottom: 1px solid #e2e8f0;
+      position: fixed; /* CHANGED TO FIXED */
       top: 0;
-      z-index: 1000;
+      left: 0;
+      width: 100%;
+      z-index: 9999;
       box-shadow: 0 4px 12px rgba(0,0,0,0.03);
     }
     .header-inner {
@@ -43,7 +45,6 @@
       gap: 20px;
     }
     
-    /* UPDATED LOGO STYLES */
     .logo {
       display: flex;
       align-items: center;
@@ -59,7 +60,7 @@
       font-size: 20px;
       font-weight: 800;
       letter-spacing: 1px;
-      color: #0a0a0a;
+      color: #0f172a;
       text-transform: uppercase;
       white-space: nowrap;
     }
@@ -71,20 +72,19 @@
     }
     .nav-desktop a {
       text-decoration: none;
-      color: #444;
+      color: #475569;
       font-size: 14px;
       font-weight: 500;
       transition: color 0.2s ease, transform 0.2s ease;
       position: relative;
     }
     .nav-desktop a:hover {
-      color: #16a34a;
+      color: #7c3aed; /* Purple hover */
       transform: translateY(-1px);
     }
     
-    /* ACTIVE LINK STYLING */
     .nav-desktop a.active-link {
-      color: #16a34a;
+      color: #7c3aed; /* Purple active */
       font-weight: 700;
     }
     .nav-desktop a.active-link::after {
@@ -94,7 +94,7 @@
       height: 2px;
       bottom: -4px;
       left: 0;
-      background-color: #16a34a;
+      background-color: #7c3aed; /* Purple underline */
     }
     
     .nav-desktop a::after {
@@ -104,7 +104,7 @@
       height: 2px;
       bottom: -4px;
       left: 0;
-      background-color: #16a34a;
+      background-color: #7c3aed;
       transition: width 0.3s ease;
     }
     .nav-desktop a:hover::after {
@@ -114,17 +114,17 @@
     .header-search {
       display: flex;
       align-items: center;
-      background: #f5f5f5;
+      background: #f8fafc;
       border-radius: 30px;
       padding: 5px 15px;
-      border: 1px solid #e5e5e5;
+      border: 1px solid #e2e8f0;
       transition: all 0.3s ease;
       width: 300px;
     }
     .header-search:focus-within {
       background: #fff;
-      border-color: #16a34a;
-      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
     }
     .header-search input {
       border: none;
@@ -133,10 +133,10 @@
       width: 100%;
       padding: 8px 0;
       font-size: 13px;
-      color: #333;
+      color: #0f172a;
     }
     .header-search button {
-      background: #0a0a0a;
+      background: #7c3aed;
       color: #fff;
       border: none;
       border-radius: 20px;
@@ -147,23 +147,23 @@
       transition: background 0.2s;
     }
     .header-search button:hover {
-      background: #16a34a;
+      background: #6d28d9;
     }
     .cart-link {
       position: relative;
-      color: #444;
+      color: #475569;
       display: flex;
       align-items: center;
       transition: color 0.2s;
     }
     .cart-link:hover {
-      color: #16a34a;
+      color: #7c3aed;
     }
     .cart-badge {
       position: absolute;
       top: -8px;
       right: -10px;
-      background: #16a34a;
+      background: #7c3aed; /* Purple badge */
       color: #fff;
       font-size: 10px;
       font-weight: bold;
@@ -180,23 +180,25 @@
       border: none;
       font-size: 24px;
       cursor: pointer;
+      color: #0f172a;
     }
     .nav-mobile {
       display: none;
       flex-direction: column;
       background: #fff;
-      border-top: 1px solid #eee;
+      border-top: 1px solid #e2e8f0;
       padding: 10px 20px;
+      width: 100%;
     }
     .nav-mobile a {
       padding: 12px 0;
       text-decoration: none;
-      color: #444;
-      border-bottom: 1px solid #f5f5f5;
+      color: #475569;
+      border-bottom: 1px solid #f1f1f1;
       font-weight: 500;
     }
     .nav-mobile a.active-link {
-      color: #16a34a;
+      color: #7c3aed;
       font-weight: 700;
     }
     
@@ -204,7 +206,7 @@
       .nav-desktop, .header-search { display: none; }
       .menu-toggle { display: block; }
       .nav-mobile.open { display: flex; }
-      .logo span { font-size: 16px; } /* Shrinks text on mobile */
+      .logo span { font-size: 16px; }
       .logo img { max-height: 32px; }
     }
   `;
@@ -217,7 +219,7 @@
           ${settings.store_logo 
             ? `<img src="${settings.store_logo}" alt="${settings.store_name}">` 
             : ''}
-          <span>${settings.store_name || 'Great Addesam'}</span>
+          <span>${settings.store_name || 'CT Collection'}</span>
         </a>
         
         <nav class="nav-desktop">
@@ -234,7 +236,7 @@
         <div class="header-search" style="position:relative;">
           <input id="live-search-input" placeholder="Search products..." autocomplete="off">
           <button type="button" onclick="location.href='shop.html?q='+encodeURIComponent(document.getElementById('live-search-input').value)">Search</button>
-          <div id="live-search-results" style="display:none; position:absolute; top:110%; left:0; right:0; background:#fff; border:1px solid #e5e5e5; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.08); z-index:100; max-height:350px; overflow-y:auto;"></div>
+          <div id="live-search-results" style="display:none; position:absolute; top:110%; left:0; right:0; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.08); z-index:10000; max-height:350px; overflow-y:auto;"></div>
         </div>
 
         <a href="cart.html" class="cart-link" aria-label="Cart">
@@ -289,7 +291,7 @@
         .limit(5);
 
       if (error || !data || data.length === 0) {
-        resultsBox.innerHTML = `<div style="padding:12px; color:#737373; font-size:13px; text-align:center;">No products found for "${escapeHtml(query)}"</div>`;
+        resultsBox.innerHTML = `<div style="padding:12px; color:#475569; font-size:13px; text-align:center;">No products found for "${escapeHtml(query)}"</div>`;
         resultsBox.style.display = 'block';
         return;
       }
@@ -298,11 +300,11 @@
         const img = p.variant_images?.[0]?.image_url || 'https://placehold.co/40x50?text=No+Img';
         const price = p.sale_price ?? p.base_price;
         return `
-          <a href="product.html?slug=${encodeURIComponent(p.slug)}" style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-bottom:1px solid #f1f1f1; text-decoration:none; color:inherit; transition: background 0.2s;" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background='#fff'">
+          <a href="product.html?slug=${encodeURIComponent(p.slug)}" style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-bottom:1px solid #f1f1f1; text-decoration:none; color:inherit; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
             <img src="${img}" style="width:40px; height:50px; object-fit:cover; border-radius:4px;">
             <div>
-              <div style="font-size:13px; font-weight:600;">${escapeHtml(p.name)}</div>
-              <div style="font-size:12px; color:#16a34a; font-weight:700;">${formatMoney(price, settings.currency_symbol)}</div>
+              <div style="font-size:13px; font-weight:600; color:#0f172a;">${escapeHtml(p.name)}</div>
+              <div style="font-size:12px; color:#7c3aed; font-weight:700;">${formatMoney(price, settings.currency_symbol)}</div>
             </div>
           </a>
         `;

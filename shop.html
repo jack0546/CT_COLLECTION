@@ -27,7 +27,7 @@
           <select id="f-category"><option value="">All categories</option></select>
         </div>
         <div class="filter-group">
-          <label>Max price — <span id="price-label">₵ 2000</span></label>
+          <label>Max price — <span id="price-label">GHC 2000</span></label>
           <input id="f-price" type="range" min="0" max="2000" step="50" value="2000" />
         </div>
         <div class="filter-group">
@@ -54,11 +54,12 @@
           </div>
         </div>
         
-        <div class="category-grid" id="shop-categories" style="display:none; margin-bottom: 30px;"></div>
+        <!-- FIXED: Removed inline display:none so the CSS class can take over -->
+        <div class="category-grid" id="shop-categories" style="margin-bottom: 30px;"></div>
 
         <div class="product-grid" id="shop-grid"></div>
 
-        <!-- LOAD MORE BUTTON (Required for pagination) -->
+        <!-- LOAD MORE BUTTON -->
         <div style="text-align: center; margin: 40px 0;">
           <button id="load-more-btn" class="btn btn-outline" style="padding: 12px 30px; border-radius: 8px; font-weight: 600;">Load More Products</button>
         </div>
