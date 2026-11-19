@@ -7,27 +7,45 @@
   <link rel="stylesheet" href="css/styles.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
-    .tracker-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 30px; max-width: 600px; margin: 0 auto; }
+    .tracker-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 30px; max-width: 700px; margin: 0 auto; }
     
     /* Timeline Styles */
-    .timeline { display: flex; justify-content: space-between; margin-top: 30px; position: relative; }
+    .timeline { display: flex; justify-content: space-between; margin-top: 30px; position: relative; margin-bottom: 40px; }
     .timeline::before { content: ''; position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: #e5e5e5; z-index: 1; }
     .timeline-step { position: relative; z-index: 2; text-align: center; flex: 1; }
     .timeline-circle { width: 32px; height: 32px; border-radius: 50%; background: #e5e5e5; color: #fff; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-weight: bold; font-size: 13px; }
-    .timeline-step.active .timeline-circle { background: #16a34a; }
-    .timeline-step.completed .timeline-circle { background: #0a0a0a; }
+    .timeline-step.active .timeline-circle { background: #7c3aed; } /* Updated to Purple */
+    .timeline-step.completed .timeline-circle { background: #0f172a; }
     .timeline-label { font-size: 11px; color: #737373; font-weight: 500; }
-    .timeline-step.active .timeline-label { color: #16a34a; font-weight: bold; }
+    .timeline-step.active .timeline-label { color: #7c3aed; font-weight: bold; }
     
     /* Cancelled State */
     .cancelled-banner { background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; width: 100%; border: 1px solid #fecaca; }
 
     /* POS State */
-    .pos-banner { background: #dcfce7; color: #166534; padding: 20px; border-radius: 8px; text-align: center; width: 100%; border: 1px solid #bbf7d0; }
+    .pos-banner { background: #dcfce7; color: #166534; padding: 20px; border-radius: 8px; text-align: center; width: 100%; border: 1px solid #bbf7d0; margin-bottom: 20px; }
     .pos-banner h3 { margin: 0 0 10px; font-size: 18px; }
     .pos-banner p { margin: 0; font-size: 14px; }
 
     .hidden { display: none !important; }
+
+    /* New Details Grid */
+    .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; background: #f8fafc; padding: 20px; border-radius: 10px; border: 1px solid #e2e8f0; }
+    .detail-item h4 { margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 600; }
+    .detail-item p { margin: 0; font-size: 14px; color: #0f172a; font-weight: 500; line-height: 1.4; }
+    @media (max-width: 600px) { .details-grid { grid-template-columns: 1fr; } }
+
+    /* New Item List */
+    .item-card { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+    .item-card:last-child { border-bottom: none; }
+    .item-info h4 { margin: 0 0 2px; font-size: 14px; font-weight: 600; color: #0f172a; }
+    .item-info p { margin: 0; font-size: 12px; color: #64748b; }
+    .item-price { text-align: right; font-weight: 600; font-size: 14px; color: #0f172a; }
+    .item-qty { display: block; font-size: 12px; color: #64748b; font-weight: 400; }
+
+    /* Summary Rows */
+    .summary-row { display: flex; justify-content: space-between; font-size: 14px; color: #475569; margin-bottom: 8px; }
+    .summary-row.total { font-size: 18px; font-weight: 800; color: #0f172a; margin-top: 12px; padding-top: 12px; border-top: 2px solid #e2e8f0; }
 
     /* Printer Animation */
     .printer-container { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px dashed #e5e5e5; }
@@ -58,19 +76,26 @@
     <div class="tracker-card" id="tracker-form-card">
       <p class="muted" style="margin-bottom: 20px; text-align: center;">Enter your Order Reference and Phone Number to see your order status.</p>
       <form id="tracker-form">
-        <div class="form-field"><label>Order Reference</label><input id="t-ref" required /></div>
-        <div class="form-field"><label>Phone Number</label><input id="t-phone" required /></div>
-        <button type="submit" class="btn btn-dark" style="width: 100%; margin-top: 10px;" id="t-btn">Find My Order</button>
+        <div class="form-field"><label>Order Reference</label><input id="t-ref" required placeholder="e.g. ORD-12345" /></div>
+        <div class="form-field"><label>Phone Number</label><input id="t-phone" required placeholder="Phone number used at checkout" /></div>
+        <button type="submit" class="btn btn-dark" style="width: 100%; margin-top: 10px; padding: 14px;" id="t-btn">Find My Order</button>
       </form>
       <div id="t-error" class="hidden" style="color: #dc2626; text-align: center; margin-top: 15px; font-size: 14px;"></div>
     </div>
 
     <div class="tracker-card hidden" id="tracker-result-card">
-      <h2 style="margin: 0 0 4px;">Order: <span id="r-ref" style="font-weight: normal; color: #525252;"></span></h2>
-      <p class="muted" style="margin-bottom: 20px;">
-        Total: <span id="r-total" style="font-weight: bold; color: #0a0a0a;"></span> <br>
-        Payment: <span id="r-payment" style="font-weight: bold;"></span>
-      </p>
+      
+      <!-- Order Header -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <h2 style="margin: 0 0 4px; font-size: 20px;">Order <span id="r-ref" style="font-weight: 800; color: #7c3aed;"></span></h2>
+          <p class="muted" style="margin: 0; font-size: 13px;" id="r-date"></p>
+        </div>
+        <div style="text-align: right;">
+          <p class="muted" style="margin: 0; font-size: 13px;">Payment Status</p>
+          <span id="r-payment" style="font-weight: 700; font-size: 14px; padding: 4px 10px; border-radius: 999px; display: inline-block; margin-top: 4px;"></span>
+        </div>
+      </div>
 
       <!-- Timeline (Default for online orders) -->
       <div class="timeline" id="r-timeline">
@@ -81,21 +106,63 @@
         <div class="timeline-step" data-step="delivered"><div class="timeline-circle">✓</div><div class="timeline-label">Delivered</div></div>
       </div>
 
-      <!-- POS / In-Store Pickup Banner (Shown only for POS orders) -->
-      <div id="pos-banner" class="pos-banner hidden" style="margin-top: 20px;">
+      <!-- POS / In-Store Pickup Banner -->
+      <div id="pos-banner" class="pos-banner hidden">
         <h3>🛍️ Purchased In Shop</h3>
         <p>Thank you for doing business with us, <strong id="pos-customer-name"></strong>!</p>
         <p style="font-size: 12px; margin-top: 8px; color: #166534;">This item was paid for and collected at the counter.</p>
       </div>
 
-      <div style="margin-top: 30px; border-top: 1px solid #e5e5e5; padding-top: 15px;">
-        <h4 style="margin: 0 0 10px;">Items</h4>
+      <!-- Delivery Details Grid -->
+      <div class="details-grid">
+        <div class="detail-item">
+          <h4>Customer Name</h4>
+          <p id="r-name">-</p>
+        </div>
+        <div class="detail-item">
+          <h4>Phone Number</h4>
+          <p id="r-phone">-</p>
+        </div>
+        <div class="detail-item">
+          <h4>Delivery Location</h4>
+          <p id="r-location">-</p>
+        </div>
+        <div class="detail-item">
+          <h4>Delivery Address</h4>
+          <p id="r-address">-</p>
+        </div>
+        <div class="detail-item" id="r-notes-container" style="display: none; grid-column: span 2;">
+          <h4>Order Notes</h4>
+          <p id="r-notes" style="color: #b45309;">-</p>
+        </div>
+      </div>
+
+      <!-- Items Section -->
+      <div style="margin-bottom: 24px;">
+        <h4 style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #0f172a;">Items Ordered</h4>
         <div id="r-items"></div>
       </div>
 
+      <!-- Price Summary -->
+      <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <span id="r-subtotal">₵ 0.00</span>
+        </div>
+        <div class="summary-row">
+          <span>Delivery Fee</span>
+          <span id="r-delivery">₵ 0.00</span>
+        </div>
+        <div class="summary-row total">
+          <span>Total</span>
+          <span id="r-total">₵ 0.00</span>
+        </div>
+      </div>
+
+      <!-- Receipt Section -->
       <div id="receipt-section" class="hidden">
-        <div class="printer-container">
-          <button id="generate-receipt-btn" class="btn btn-dark" style="width: 100%; margin-bottom: 20px;">🖨️ Generate Receipt</button>
+        <div class="printer-container" style="border-top: none; padding-top: 0;">
+          <button id="generate-receipt-btn" class="btn btn-dark" style="width: 100%; margin-bottom: 20px; padding: 12px;">🖨️ Generate Receipt</button>
           <div class="printer-body hidden" id="printer-body"><div class="printer-slot"></div></div>
           <div class="receipt-paper-wrapper" id="receipt-wrapper">
             <div class="receipt-paper" id="printable-receipt"></div>
@@ -104,7 +171,10 @@
         </div>
       </div>
 
-      <button class="btn btn-light" style="width: 100%; margin-top: 20px;" onclick="location.reload()">Track another order</button>
+      <div style="display: flex; gap: 12px; margin-top: 20px;">
+        <button class="btn btn-light" style="flex: 1; padding: 12px;" onclick="location.reload()">Track another order</button>
+        <a href="shop.html" class="btn btn-dark" style="flex: 1; padding: 12px; text-align: center;">Continue Shopping</a>
+      </div>
     </div>
   </main>
 
@@ -128,6 +198,7 @@
     
     let currentOrderData = null;
     let currentSettings = null;
+    let currentSymbol = '₵';
 
     document.getElementById('tracker-form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -141,6 +212,7 @@
       errEl.classList.add('hidden');
 
       currentSettings = await getStoreSettings();
+      currentSymbol = currentSettings?.currency_symbol || '₵';
 
       const { data, error } = await supabaseClient.rpc('get_order_by_reference', { p_reference: ref, p_phone: phone });
 
@@ -160,38 +232,67 @@
       document.getElementById('tracker-form-card').classList.add('hidden');
       document.getElementById('tracker-result-card').classList.remove('hidden');
       
+      // Basic Info
       document.getElementById('r-ref').textContent = order.order_reference;
-      document.getElementById('r-total').textContent = `₵ ${Number(order.total_amount).toFixed(2)}`;
+      document.getElementById('r-date').textContent = new Date(order.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      
+      // Customer Details
+      document.getElementById('r-name').textContent = order.customer_name || 'N/A';
+      document.getElementById('r-phone').textContent = order.customer_phone || 'N/A';
+      document.getElementById('r-location').textContent = order.delivery_location || 'N/A';
+      document.getElementById('r-address').textContent = order.delivery_address || 'N/A';
+      
+      if (order.notes) {
+        document.getElementById('r-notes-container').style.display = 'block';
+        document.getElementById('r-notes').textContent = order.notes;
+      }
 
+      // Payment Status Badge
       const payEl = document.getElementById('r-payment');
       if (order.payment_status === 'paid') {
-        payEl.textContent = 'Paid ✓';
+        payEl.textContent = 'PAID';
+        payEl.style.background = '#dcfce7';
         payEl.style.color = '#166534';
         document.getElementById('receipt-section').classList.remove('hidden');
       } else {
-        payEl.textContent = 'Unpaid';
+        payEl.textContent = 'UNPAID';
+        payEl.style.background = '#fee2e2';
         payEl.style.color = '#dc2626';
         document.getElementById('receipt-section').classList.add('hidden');
       }
 
+      // Items Rendering
       const items = order.order_items || [];
       document.getElementById('r-items').innerHTML = items.map(i => `
-        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;">
-          <span>${i.productName} (${i.colourName}/${i.size}) ×${i.quantity}</span>
-          <span>₵ ${Number(i.unitPrice * i.quantity).toFixed(2)}</span>
+        <div class="item-card">
+          <div class="item-info">
+            <h4>${i.productName}</h4>
+            <p>${i.colourName} / Size: ${i.size}</p>
+          </div>
+          <div class="item-price">
+            ${currentSymbol} ${Number(i.unitPrice * i.quantity).toFixed(2)}
+            <span class="item-qty">Qty: ${i.quantity}</span>
+          </div>
         </div>
       `).join('');
 
-      // --- NEW LOGIC: CHECK IF POS ORDER ---
+      // Calculate Subtotal & Total
+      const subtotal = items.reduce((sum, i) => sum + (Number(i.unitPrice) * Number(i.quantity)), 0);
+      const total = Number(order.total_amount);
+      const delivery = total - subtotal;
+
+      document.getElementById('r-subtotal').textContent = `${currentSymbol} ${subtotal.toFixed(2)}`;
+      document.getElementById('r-delivery').textContent = `${currentSymbol} ${(delivery > 0 ? delivery : 0).toFixed(2)}`;
+      document.getElementById('r-total').textContent = `${currentSymbol} ${total.toFixed(2)}`;
+
+      // POS Check
       const isPOS = order.order_reference.startsWith('POS-');
 
       if (isPOS) {
-        // Hide the timeline and show the POS banner
         document.getElementById('r-timeline').classList.add('hidden');
         document.getElementById('pos-banner').classList.remove('hidden');
         document.getElementById('pos-customer-name').textContent = order.customer_name;
       } else {
-        // Standard timeline logic for online orders
         document.getElementById('r-timeline').classList.remove('hidden');
         document.getElementById('pos-banner').classList.add('hidden');
 
@@ -221,7 +322,7 @@
 
     function buildReceiptHTML() {
       const order = currentOrderData;
-      const symbol = currentSettings?.currency_symbol || '₵';
+      const symbol = currentSymbol;
       const date = new Date(order.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
       const itemsHTML = order.order_items.map(item => `

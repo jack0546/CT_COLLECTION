@@ -22,13 +22,13 @@
     return currentPath === page ? 'active-link' : '';
   }
 
-  // Inject Custom CSS for the Header (Fixed for Mobile Stickiness & Purple Theme)
+  // Inject Custom CSS for the Header
   const style = document.createElement('style');
   style.innerHTML = `
      .site-header {
       background: #fff;
       border-bottom: 1px solid #e2e8f0;
-      position: fixed; /* CHANGED TO FIXED */
+      position: fixed; /* Fixed for mobile stickiness */
       top: 0;
       left: 0;
       width: 100%;
@@ -79,12 +79,12 @@
       position: relative;
     }
     .nav-desktop a:hover {
-      color: #7c3aed; /* Purple hover */
+      color: #7c3aed;
       transform: translateY(-1px);
     }
     
     .nav-desktop a.active-link {
-      color: #7c3aed; /* Purple active */
+      color: #7c3aed;
       font-weight: 700;
     }
     .nav-desktop a.active-link::after {
@@ -94,7 +94,7 @@
       height: 2px;
       bottom: -4px;
       left: 0;
-      background-color: #7c3aed; /* Purple underline */
+      background-color: #7c3aed;
     }
     
     .nav-desktop a::after {
@@ -163,7 +163,7 @@
       position: absolute;
       top: -8px;
       right: -10px;
-      background: #7c3aed; /* Purple badge */
+      background: #7c3aed;
       color: #fff;
       font-size: 10px;
       font-weight: bold;
@@ -222,13 +222,11 @@
           <span>${settings.store_name || 'CT Collection'}</span>
         </a>
         
+        <!-- Desktop Nav (Cleaned up) -->
         <nav class="nav-desktop">
           <a href="index.html" class="${isActive('index.html')}">Home</a>
           <a href="shop.html" class="${isActive('shop.html')}">Shop</a>
           <a href="shop.html?view=categories" class="${isActive('categories')}">Categories</a>
-          <a href="about.html" class="${isActive('about.html')}">About Us</a>
-          <a href="track-order.html" class="${isActive('track-order.html')}">Track Order</a>
-          <a href="contact.html" class="${isActive('contact.html')}">Contact</a>
           <a href="${authLinkUrl}" class="${isActive('account.html')}" style="font-weight: 700;">${authLinkText}</a>
         </nav>
         
@@ -250,13 +248,11 @@
         <button class="menu-toggle" aria-label="Menu">☰</button>
       </div>
       
+      <!-- Mobile Nav (Cleaned up) -->
       <div class="nav-mobile" id="mobile-nav">
         <a href="index.html" class="${isActive('index.html')}">Home</a>
         <a href="shop.html" class="${isActive('shop.html')}">Shop</a>
         <a href="shop.html?view=categories" class="${isActive('categories')}">Categories</a>
-        <a href="about.html" class="${isActive('about.html')}">About Us</a>
-        <a href="track-order.html" class="${isActive('track-order.html')}">Track Order</a>
-        <a href="contact.html" class="${isActive('contact.html')}">Contact</a>
         <a href="${authLinkUrl}" class="${isActive('account.html')}" style="font-weight: 700;">${authLinkText}</a>
       </div>
     </header>
