@@ -35,7 +35,7 @@
     }
 
     .auth-card {
-      background: #0e5a4a; /* Deep Green from your image */
+      background: #0e5a4a; /* Deep Green */
       color: #fff;
       padding: 50px 40px;
       border-radius: 16px;
@@ -43,6 +43,8 @@
       max-width: 420px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.2);
       text-align: center;
+      position: relative; /* For the modal */
+      overflow: hidden;
     }
 
     .auth-icon {
@@ -64,6 +66,7 @@
     .auth-input-group {
       margin-bottom: 20px;
       text-align: left;
+      position: relative;
     }
 
     .auth-input-group input {
@@ -72,19 +75,33 @@
       border: none;
       border-bottom: 1px solid rgba(255,255,255,0.3);
       color: #fff;
-      padding: 12px 0;
+      padding: 12px 30px 12px 0;
       font-size: 15px;
       outline: none;
       transition: border-color 0.3s;
+      box-sizing: border-box;
     }
 
-    .auth-input-group input::placeholder {
-      color: rgba(255,255,255,0.7);
-    }
+    .auth-input-group input::placeholder { color: rgba(255,255,255,0.7); }
+    .auth-input-group input:focus { border-bottom-color: #fff; }
 
-    .auth-input-group input:focus {
-      border-bottom-color: #fff;
+    /* Eye Icon Styling */
+    .toggle-password {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      padding: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s;
     }
+    .toggle-password:hover { color: #fff; }
 
     .auth-btn {
       background: #fff;
@@ -100,10 +117,8 @@
       transition: transform 0.2s, background 0.2s;
     }
 
-    .auth-btn:hover {
-      transform: translateY(-2px);
-      background: #f0fdf4;
-    }
+    .auth-btn:hover { transform: translateY(-2px); background: #f0fdf4; }
+    .auth-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
 
     .auth-footer {
       margin-top: 30px;
@@ -112,11 +127,7 @@
       line-height: 1.6;
     }
 
-    .auth-footer a {
-      color: #fff;
-      text-decoration: underline;
-      font-weight: 600;
-    }
+    .auth-footer a { color: #fff; text-decoration: underline; font-weight: 600; }
 
     .auth-bottom-link {
       margin-top: 25px;
@@ -124,6 +135,65 @@
       border-top: 1px solid rgba(255,255,255,0.2);
       font-size: 14px;
     }
+
+    /* --- FORGOT PASSWORD MODAL --- */
+    .reset-modal {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: #0e5a4a;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 40px;
+      box-sizing: border-box;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 10;
+    }
+    
+    .reset-modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .reset-modal h3 {
+      font-size: 22px;
+      margin: 0 0 10px;
+      font-weight: 500;
+    }
+
+    .reset-modal p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 24px;
+      cursor: pointer;
+      opacity: 0.7;
+    }
+    .close-modal:hover { opacity: 1; }
+
+    .forgot-link {
+      display: block;
+      text-align: right;
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      margin-top: -10px;
+      margin-bottom: 20px;
+      transition: color 0.2s;
+    }
+    .forgot-link:hover { color: #fff; text-decoration: underline; }
 
     @media (min-width: 768px) {
       .auth-image { display: block; }
@@ -139,35 +209,61 @@
     <div class="auth-form-wrapper">
       <div class="auth-card">
         
-        <div class="auth-icon">
-          <!-- Fingerprint SVG Icon -->
-          <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 4c-4.418 0-8 3.582-8 8s3.582 8 8 8 8-3.582 8-8-3.582-8-8-8z" opacity="0.3"/>
-            <path d="M12 7c-2.761 0-5 2.239-5 5s2.239 5 5 5 5-2.239 5-5-2.239-5-5-5z" opacity="0.5"/>
-            <path d="M12 10c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2z"/>
-          </svg>
+        <!-- MAIN LOGIN VIEW -->
+        <div id="login-view">
+          <div class="auth-icon">
+            <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 4c-4.418 0-8 3.582-8 8s3.582 8 8 8 8-3.582 8-8-3.582-8-8-8z" opacity="0.3"/>
+              <path d="M12 7c-2.761 0-5 2.239-5 5s2.239 5 5 5 5-2.239 5-5-2.239-5-5-5z" opacity="0.5"/>
+              <path d="M12 10c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2z"/>
+            </svg>
+          </div>
+
+          <h2>Welcome Back</h2>
+
+          <form id="login-form">
+            <div class="auth-input-group">
+              <input id="l-email" type="email" placeholder="E-mail address" required />
+            </div>
+            <div class="auth-input-group">
+              <input id="l-pass" type="password" placeholder="Password" required />
+              
+              <!-- EYE ICON ADDED HERE -->
+              <button type="button" class="toggle-password" id="toggle-password" aria-label="Show password">
+                <svg id="eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <svg id="eye-closed" style="display: none;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+              </button>
+            </div>
+            
+            <!-- Forgot Password Trigger -->
+            <a href="#" id="open-reset" class="forgot-link">Forgot password?</a>
+
+            <button type="submit" class="auth-btn" id="login-btn">Log in</button>
+            <p id="login-msg" style="text-align:center; margin-top:15px; font-size:13px; color:#fca5a5;"></p>
+          </form>
+
+          <div class="auth-footer">
+            By logging in, you agree to our <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a>.
+          </div>
+
+          <div class="auth-bottom-link">
+            Don't have an account? <a href="register.html">Sign up.</a>
+          </div>
         </div>
 
-        <h2>Welcome Back</h2>
-
-        <form id="login-form">
-          <div class="auth-input-group">
-            <input id="l-email" type="email" placeholder="E-mail address" required />
-          </div>
-          <div class="auth-input-group">
-            <input id="l-pass" type="password" placeholder="Password" required />
-          </div>
+        <!-- PASSWORD RESET MODAL VIEW -->
+        <div id="reset-view" class="reset-modal">
+          <button class="close-modal" id="close-reset">&times;</button>
+          <h3>Reset Password</h3>
+          <p>Enter the email address you used to register, and we'll send you a secure link to reset your password.</p>
           
-          <button type="submit" class="auth-btn" id="login-btn">Log in</button>
-          <p id="login-msg" style="text-align:center; margin-top:15px; font-size:13px; color:#fca5a5;"></p>
-        </form>
-
-        <div class="auth-footer">
-          By logging in, you agree to our <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a>.
-        </div>
-
-        <div class="auth-bottom-link">
-          Don't have an account? <a href="register.html">Sign up.</a>
+          <form id="reset-form">
+            <div class="auth-input-group">
+              <input id="reset-email" type="email" placeholder="E-mail address" required />
+            </div>
+            <button type="submit" class="auth-btn" id="reset-btn">Send Reset Link</button>
+            <p id="reset-msg" style="text-align:center; margin-top:15px; font-size:13px;"></p>
+          </form>
         </div>
 
       </div>
@@ -177,12 +273,32 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-client.js"></script>
   <script>
+    // --- PASSWORD PREVIEW LOGIC ---
+    const toggleBtn = document.getElementById('toggle-password');
+    const passInput = document.getElementById('l-pass');
+    const eyeOpen = document.getElementById('eye-open');
+    const eyeClosed = document.getElementById('eye-closed');
+
+    toggleBtn.addEventListener('click', () => {
+      if (passInput.type === 'password') {
+        passInput.type = 'text';
+        eyeOpen.style.display = 'none';
+        eyeClosed.style.display = 'block';
+      } else {
+        passInput.type = 'password';
+        eyeOpen.style.display = 'block';
+        eyeClosed.style.display = 'none';
+      }
+    });
+
+    // --- LOGIN LOGIC ---
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('login-btn');
       const msg = document.getElementById('login-msg');
       btn.disabled = true;
       btn.textContent = 'Signing in...';
+      msg.textContent = '';
 
       const { error } = await supabaseClient.auth.signInWithPassword({
         email: document.getElementById('l-email').value,
@@ -195,6 +311,55 @@
         btn.textContent = 'Log in';
       } else {
         window.location.href = 'account.html'; 
+      }
+    });
+
+    // --- MODAL TOGGLE LOGIC ---
+    const resetView = document.getElementById('reset-view');
+    const loginView = document.getElementById('login-view');
+    const openResetBtn = document.getElementById('open-reset');
+    const closeResetBtn = document.getElementById('close-reset');
+
+    openResetBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const loginEmail = document.getElementById('l-email').value;
+      if (loginEmail) document.getElementById('reset-email').value = loginEmail;
+      
+      resetView.classList.add('active');
+      document.getElementById('reset-msg').textContent = '';
+    });
+
+    closeResetBtn.addEventListener('click', () => {
+      resetView.classList.remove('active');
+    });
+
+    // --- SEND RESET LINK LOGIC ---
+    document.getElementById('reset-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('reset-btn');
+      const msg = document.getElementById('reset-msg');
+      const email = document.getElementById('reset-email').value.trim();
+
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      msg.textContent = '';
+
+      const redirectUrl = window.location.origin + '/reset-password.html';
+
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+
+      if (error) {
+        msg.style.color = '#fca5a5';
+        msg.textContent = error.message;
+        btn.disabled = false;
+        btn.textContent = 'Send Reset Link';
+      } else {
+        msg.style.color = '#86efac';
+        msg.textContent = 'Check your inbox! A secure reset link has been sent to your email.';
+        btn.disabled = false;
+        btn.textContent = 'Send Reset Link';
       }
     });
   </script>
