@@ -30,7 +30,6 @@ async function mountCheckout() {
         profile.region, profile.city, profile.suburb, profile.street_name, profile.landmark
       ].filter(Boolean).join(' - ');
 
-      // FIXED: Show "Not set" if the fields are empty
       document.getElementById('display-name').textContent = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Not set';
       document.getElementById('display-phone').textContent = profile.phone || 'Not set';
       document.getElementById('display-address').textContent = displayAddress || 'Not set';
@@ -82,6 +81,7 @@ async function mountCheckout() {
 
     const formattedOrderItems = items.map(item => ({
       product_id: item.productId || item.product_id,
+      variant_id: item.variantId || item.variant_id,
       productName: item.productName || item.name,
       colourName: item.colourName || item.colour,
       size: item.size,
@@ -97,6 +97,7 @@ async function mountCheckout() {
       return;
     }
 
+    // 1. Save the order as "unpaid" before opening Paystack
     const { error } = await supabaseClient.from('orders').insert({
       order_reference: orderReference,
       customer_name: customer.name,
@@ -126,13 +127,37 @@ async function mountCheckout() {
       email: customer.email,
       amount: Math.round(total * 100),
       reference: orderReference,
-      onSuccess: (transaction) => {
+      
+      // 2. PAYMENT SUCCESSFUL - NOW DEDUCT STOCK AND MARK AS PAID
+      onSuccess: async (transaction) => {
+        
+        // Update the order to "paid"
+        await supabaseClient.from('orders')
+          .update({ payment_status: 'paid' })
+          .eq('order_reference', orderReference);
+
+        // Deduct stock for each item
+        for (const item of items) {
+          const vId = item.variantId || item.variant_id;
+          if (vId) {
+            const { error: stockError } = await supabaseClient.rpc('decrement_stock', {
+              variant_id: vId,
+              qty: item.quantity
+            });
+            if (stockError) {
+              console.error("Failed to deduct stock for variant:", vId, stockError);
+            }
+          }
+        }
+
         clearCart();
         sessionStorage.setItem('last_order_ref', orderReference);
         window.location.href = 'order-confirmed.html?ref=' + orderReference;
       },
+
+      // 3. PAYMENT CANCELLED - DO NOTHING TO STOCK
       onCancel: () => {
-        alert('Payment cancelled. Your order is saved but unpaid.');
+        alert('Payment cancelled. Your order is saved as unpaid.');
         paystackBtn.disabled = false;
         paystackBtn.textContent = '💳 Pay Now (Secure)';
       },
