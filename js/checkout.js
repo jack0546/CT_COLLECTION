@@ -123,39 +123,21 @@ async function mountCheckout() {
 
     const paystack = new PaystackPop();
     paystack.newTransaction({
-      key: 'pk_live_4f5e7d35d201c81efd615f2f98ba08c7b049f4ae', // 🔴 REPLACE WITH NEW CLIENT'S PUBLIC KEY
+      key: 'pk_live_e9eec4f74e00cd39b3c5d2033964c06c52f0a553', // 🔴 Ensure this is the correct live key
       email: customer.email,
       amount: Math.round(total * 100),
       reference: orderReference,
       
-      // 2. PAYMENT SUCCESSFUL - NOW DEDUCT STOCK AND MARK AS PAID
-      onSuccess: async (transaction) => {
-        
-        // Update the order to "paid"
-        await supabaseClient.from('orders')
-          .update({ payment_status: 'paid' })
-          .eq('order_reference', orderReference);
-
-        // Deduct stock for each item
-        for (const item of items) {
-          const vId = item.variantId || item.variant_id;
-          if (vId) {
-            const { error: stockError } = await supabaseClient.rpc('decrement_stock', {
-              variant_id: vId,
-              qty: item.quantity
-            });
-            if (stockError) {
-              console.error("Failed to deduct stock for variant:", vId, stockError);
-            }
-          }
-        }
-
+      // 2. PAYMENT SUCCESSFUL
+      onSuccess: (transaction) => {
+        // The webhook automatically handles marking as paid and deducting stock.
+        // We just clear the cart and redirect the user to the success page.
         clearCart();
         sessionStorage.setItem('last_order_ref', orderReference);
         window.location.href = 'order-confirmed.html?ref=' + orderReference;
       },
 
-      // 3. PAYMENT CANCELLED - DO NOTHING TO STOCK
+      // 3. PAYMENT CANCELLED
       onCancel: () => {
         alert('Payment cancelled. Your order is saved as unpaid.');
         paystackBtn.disabled = false;
