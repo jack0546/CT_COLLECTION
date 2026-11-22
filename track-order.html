@@ -10,15 +10,23 @@
     .tracker-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 30px; max-width: 700px; margin: 0 auto; }
     
     /* Timeline Styles */
-    .timeline { display: flex; justify-content: space-between; margin-top: 30px; position: relative; margin-bottom: 40px; }
+    .timeline { display: flex; justify-content: space-between; margin-top: 30px; position: relative; margin-bottom: 20px; }
     .timeline::before { content: ''; position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: #e5e5e5; z-index: 1; }
     .timeline-step { position: relative; z-index: 2; text-align: center; flex: 1; }
     .timeline-circle { width: 32px; height: 32px; border-radius: 50%; background: #e5e5e5; color: #fff; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-weight: bold; font-size: 13px; }
-    .timeline-step.active .timeline-circle { background: #7c3aed; } /* Updated to Purple */
+    .timeline-step.active .timeline-circle { background: #7c3aed; } /* Purple */
     .timeline-step.completed .timeline-circle { background: #0f172a; }
     .timeline-label { font-size: 11px; color: #737373; font-weight: 500; }
     .timeline-step.active .timeline-label { color: #7c3aed; font-weight: bold; }
-    
+
+    /* Dynamic Status Message Box */
+    .status-message-box {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #7c3aed;
+      padding: 16px 20px; border-radius: 8px; margin-bottom: 30px;
+      font-size: 14px; color: #334155; line-height: 1.5;
+    }
+    .status-message-box strong { color: #0f172a; display: block; margin-bottom: 4px; font-size: 15px; }
+
     /* Cancelled State */
     .cancelled-banner { background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; width: 100%; border: 1px solid #fecaca; }
 
@@ -29,13 +37,13 @@
 
     .hidden { display: none !important; }
 
-    /* New Details Grid */
+    /* Details Grid */
     .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; background: #f8fafc; padding: 20px; border-radius: 10px; border: 1px solid #e2e8f0; }
     .detail-item h4 { margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 600; }
     .detail-item p { margin: 0; font-size: 14px; color: #0f172a; font-weight: 500; line-height: 1.4; }
     @media (max-width: 600px) { .details-grid { grid-template-columns: 1fr; } }
 
-    /* New Item List */
+    /* Item List */
     .item-card { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
     .item-card:last-child { border-bottom: none; }
     .item-info h4 { margin: 0 0 2px; font-size: 14px; font-weight: 600; color: #0f172a; }
@@ -97,13 +105,19 @@
         </div>
       </div>
 
-      <!-- Timeline (Default for online orders) -->
+      <!-- Timeline -->
       <div class="timeline" id="r-timeline">
         <div class="timeline-step" data-step="pending"><div class="timeline-circle">1</div><div class="timeline-label">Pending</div></div>
         <div class="timeline-step" data-step="confirmed"><div class="timeline-circle">2</div><div class="timeline-label">Confirmed</div></div>
         <div class="timeline-step" data-step="processing"><div class="timeline-circle">3</div><div class="timeline-label">Processing</div></div>
         <div class="timeline-step" data-step="shipped"><div class="timeline-circle">4</div><div class="timeline-label">Shipped</div></div>
         <div class="timeline-step" data-step="delivered"><div class="timeline-circle">✓</div><div class="timeline-label">Delivered</div></div>
+      </div>
+
+      <!-- DYNAMIC STATUS MESSAGE BOX -->
+      <div class="status-message-box" id="status-message-box">
+        <strong id="status-title">Order Status</strong>
+        <span id="status-text">Loading message...</span>
       </div>
 
       <!-- POS / In-Store Pickup Banner -->
@@ -194,6 +208,15 @@
       shipped: 3, 
       delivered: 4, 
       cancelled: -1 
+    };
+
+    // CUSTOM STATUS MESSAGES
+    const STATUS_MESSAGES = {
+      pending: { title: "Order Received", text: "Your order has been received by CT Luxx Collection. We will contact you shortly to confirm the details." },
+      confirmed: { title: "Order Confirmed", text: "Your order has been confirmed! We are getting your items ready for dispatch." },
+      processing: { title: "Preparing for Delivery", text: "We are carefully packaging your items and preparing them for shipment." },
+      shipped: { title: "Out for Delivery", text: "Your order is on its way! The delivery rider will contact you soon." },
+      delivered: { title: "Delivered", text: "Your order has been successfully delivered. Thank you for shopping with CT Luxx Collection!" }
     };
     
     let currentOrderData = null;
@@ -290,6 +313,7 @@
 
       if (isPOS) {
         document.getElementById('r-timeline').classList.add('hidden');
+        document.getElementById('status-message-box').classList.add('hidden');
         document.getElementById('pos-banner').classList.remove('hidden');
         document.getElementById('pos-customer-name').textContent = order.customer_name;
       } else {
@@ -305,7 +329,9 @@
               This order has been cancelled.<br>
               <span style="font-weight: normal; font-size: 13px;">Please contact us on WhatsApp or call us on normal call for more details.</span>
             </div>`;
+          document.getElementById('status-message-box').classList.add('hidden');
         } else {
+          // Update Timeline
           document.querySelectorAll('.timeline-step').forEach(el => {
             const stepIndex = STATUS_MAP[el.dataset.step];
             el.classList.remove('active', 'completed');
@@ -316,6 +342,19 @@
               el.classList.add('active');
             }
           });
+
+          // Update Status Message Box
+          const msgBox = document.getElementById('status-message-box');
+          const msgTitle = document.getElementById('status-title');
+          const msgText = document.getElementById('status-text');
+          
+          if (STATUS_MESSAGES[currentStatus]) {
+            msgBox.classList.remove('hidden');
+            msgTitle.textContent = STATUS_MESSAGES[currentStatus].title;
+            msgText.textContent = STATUS_MESSAGES[currentStatus].text;
+          } else {
+            msgBox.classList.add('hidden');
+          }
         }
       }
     });
