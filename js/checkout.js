@@ -123,15 +123,15 @@ async function mountCheckout() {
 
     const paystack = new PaystackPop();
     paystack.newTransaction({
-      key: 'pk_live_e9eec4f74e00cd39b3c5d2033964c06c52f0a553', // 🔴 Ensure this is the correct live key
+      key: 'pk_live_e9eec4f74e00cd39b3c5d2033964c06c52f0a553', // 🔴 
       email: customer.email,
       amount: Math.round(total * 100),
       reference: orderReference,
       
       // 2. PAYMENT SUCCESSFUL
       onSuccess: (transaction) => {
-        // The webhook automatically handles marking as paid and deducting stock.
-        // We just clear the cart and redirect the user to the success page.
+        // DO NOT DEDUCT STOCK HERE. The webhook handles it automatically in the background.
+        // We just clear the cart and show the success page.
         clearCart();
         sessionStorage.setItem('last_order_ref', orderReference);
         window.location.href = 'order-confirmed.html?ref=' + orderReference;
