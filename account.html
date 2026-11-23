@@ -7,6 +7,8 @@
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/styles.css" />
   <script src="https://js.paystack.co/v2/inline.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  
   <style>
     .account-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e5e5e5; }
     .account-tabs button { background: none; border: none; padding: 10px 15px; font-size: 14px; font-weight: 500; cursor: pointer; color: #737373; }
@@ -14,13 +16,14 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
     
-    .order-card { border: 1px solid #e5e5e5; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+    /* Order Card */
+    .order-card { border: 1px solid #e5e5e5; border-radius: 8px; padding: 15px; margin-bottom: 15px; cursor: pointer; transition: all 0.2s; }
+    .order-card:hover { border-color: #7c3aed; box-shadow: 0 4px 12px rgba(124,58,237,0.08); transform: translateY(-2px); }
     .order-header { display: flex; justify-content: space-between; border-bottom: 1px dashed #e5e5e5; padding-bottom: 10px; margin-bottom: 10px; }
     
     .badge { font-weight: bold; font-size: 11px; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
     .status-paid { background: #dcfce7; color: #166534; }
     .status-unpaid { background: #fee2e2; color: #991b1b; }
-    
     .badge-pending { background: #fef3c7; color: #92400e; }
     .badge-confirmed { background: #e0f2fe; color: #075985; }
     .badge-processing { background: #f3e8ff; color: #6b21a8; }
@@ -34,6 +37,43 @@
     .profile-data-row { margin-bottom: 15px; }
     .profile-data-label { font-size: 12px; color: #737373; margin-bottom: 4px; display: block; }
     .profile-data-value { font-size: 15px; font-weight: 500; color: #0a0a0a; }
+
+    /* Modal Styles */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 20px; backdrop-filter: blur(2px); }
+    .modal-content { background: #fff; border-radius: 16px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: slideUp 0.3s ease; }
+    @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start; position: sticky; top: 0; background: #fff; z-index: 10; }
+    .modal-header h2 { margin: 0; font-size: 20px; color: #0f172a; }
+    .modal-header p { margin: 4px 0 0; font-size: 13px; color: #64748b; }
+    .close-modal { background: none; border: none; font-size: 28px; line-height: 1; color: #94a3b8; cursor: pointer; padding: 0; }
+    .close-modal:hover { color: #0f172a; }
+    .modal-body { padding: 24px; }
+    
+    /* Status Message Box */
+    .status-message-box {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #7c3aed;
+      padding: 12px 16px; border-radius: 8px; margin-bottom: 24px;
+      font-size: 14px; color: #334155; line-height: 1.5;
+    }
+    .status-message-box strong { color: #0f172a; display: block; margin-bottom: 4px; font-size: 14px; }
+
+    .detail-section { margin-bottom: 24px; }
+    .detail-section h4 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; }
+    .info-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; color: #334155; }
+    .info-row span:first-child { color: #64748b; }
+    
+    .item-row { display: flex; gap: 16px; align-items: center; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 8px; }
+    .item-row img { width: 50px; height: 65px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0; }
+    .item-info { flex: 1; }
+    .item-info h5 { margin: 0 0 4px; font-size: 14px; color: #0f172a; }
+    .item-info p { margin: 0; font-size: 12px; color: #64748b; }
+    .item-price { text-align: right; font-weight: 700; font-size: 14px; color: #0f172a; }
+    
+    .order-total-modal { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 16px; border-top: 2px solid #e2e8f0; font-size: 18px; font-weight: 800; color: #0f172a; }
+    .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+    .modal-actions button, .modal-actions a { width: 100%; padding: 12px; font-weight: 600; border-radius: 8px; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+    .btn-download { background: #0f172a; color: #fff; border: none; cursor: pointer; }
+    .btn-download:hover { background: #334155; }
   </style>
 </head>
 <body>
@@ -125,6 +165,54 @@
     </div>
   </main>
 
+  <!-- MODAL -->
+  <div id="order-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h2 id="m-order-ref">Order #ORD-1234</h2>
+          <p id="m-order-date">Placed on 22 Nov 2026 at 22:04</p>
+        </div>
+        <button class="close-modal" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+          <span id="m-payment-badge" class="badge status-paid">PAID</span>
+          <span id="m-status-badge" class="badge badge-pending">PENDING</span>
+        </div>
+
+        <div class="status-message-box" id="m-status-box">
+          <strong id="m-status-title">Order Status</strong>
+          <span id="m-status-text">Loading...</span>
+        </div>
+
+        <div class="detail-section">
+          <h4>Delivery Details</h4>
+          <div class="info-row"><span>Customer Name</span> <span id="m-customer-name">-</span></div>
+          <div class="info-row"><span>Phone Number</span> <span id="m-customer-phone">-</span></div>
+          <div class="info-row"><span>Delivery Address</span> <span id="m-customer-address" style="text-align: right; max-width: 60%;">-</span></div>
+          <div class="info-row" id="m-notes-row" style="display: none;"><span>Notes</span> <span id="m-notes" style="color: #b45309;">-</span></div>
+        </div>
+
+        <div class="detail-section">
+          <h4>Items Ordered</h4>
+          <div id="m-items-list"></div>
+        </div>
+
+        <div class="order-total-modal">
+          <span>Total</span>
+          <span id="m-order-total">₵ 0.00</span>
+        </div>
+
+        <!-- ACTION BUTTONS (HIDDEN IF UNPAID) -->
+        <div class="modal-actions" id="m-actions-container">
+          <a id="m-track-btn" href="#" class="btn btn-light" style="border: 1px solid #cbd5e1;">Track Order</a>
+          <button id="m-download-btn" class="btn-download" onclick="downloadPDFReceipt()">⬇️ Download Receipt</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="site-footer"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -136,6 +224,17 @@
   <script>
     let currentUser = null;
     let userProfile = null;
+    let currentOrderModalData = null;
+    let currentSettings = null;
+
+    const STATUS_MESSAGES = {
+      pending: { title: "Order Received", text: "Your order has been received by CT Luxx Collection. We will contact you shortly to confirm the details." },
+      confirmed: { title: "Order Confirmed", text: "Your order has been confirmed! We are getting your items ready for dispatch." },
+      processing: { title: "Preparing for Delivery", text: "We are carefully packaging your items and preparing them for shipment." },
+      shipped: { title: "Out for Delivery", text: "Your order is on its way! The delivery rider or Driver will contact you soon." },
+      delivered: { title: "Delivered", text: "Your order has been successfully delivered. Thank you for shopping with CT Luxx Collection!" },
+      cancelled: { title: "Order Cancelled", text: "This order has been cancelled. Please contact CT Luxx Collection, if you need further assistance." }
+    };
 
     async function checkAuth() {
       const { data: { user } } = await supabaseClient.auth.getUser();
@@ -147,6 +246,7 @@
       
       const { data } = await supabaseClient.from('profiles').select('*').eq('id', user.id).single();
       userProfile = data;
+      currentSettings = await getStoreSettings();
 
       await Promise.all([loadOrders(), loadProfile()]);
     }
@@ -185,17 +285,10 @@
             itemsHTML = o.order_items.map(i => `${i.quantity}x ${i.productName}`).join(', ');
         }
 
-        let actionButtons = `<a href="track-order.html" class="btn btn-light" style="font-size:12px; padding:5px 10px; border:1px solid #ccc;">Track Order</a>`;
-        
-        if (o.payment_status !== 'paid') {
-            actionButtons = `
-              <button onclick="retryPayment('${o.order_reference}', ${o.total_amount})" class="btn btn-green" style="font-size:12px; padding:5px 10px; margin-right:5px;">💳 Pay Now</button>
-              ${actionButtons}
-            `;
-        }
-        
+        const orderJSON = encodeURIComponent(JSON.stringify(o));
+
         return `
-          <div class="order-card">
+          <div class="order-card" onclick="openOrderDetails('${orderJSON}')">
             <div class="order-header">
               <strong>${o.order_reference}</strong>
               <div style="display:flex; gap:8px;">
@@ -209,11 +302,150 @@
               <strong>₵ ${Number(o.total_amount).toFixed(2)}</strong>
             </div>
             <div style="margin-top:10px; text-align:right;">
-              ${actionButtons}
+              ${o.payment_status !== 'paid' ? `<button onclick="event.stopPropagation(); retryPayment('${o.order_reference}', ${o.total_amount})" class="btn btn-green" style="font-size:12px; padding:5px 10px; margin-right:5px;">💳 Pay Now</button>` : ''}
             </div>
           </div>
         `;
       }).join('');
+    }
+
+    function openOrderDetails(encodedOrder) {
+      const order = JSON.parse(decodeURIComponent(encodedOrder));
+      currentOrderModalData = order;
+      const symbol = currentSettings?.currency_symbol || '₵';
+
+      document.getElementById('m-order-ref').textContent = `Order #${order.order_reference}`;
+      document.getElementById('m-order-date').textContent = new Date(order.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      
+      const payBadge = document.getElementById('m-payment-badge');
+      payBadge.textContent = order.payment_status.toUpperCase();
+      payBadge.className = `badge ${order.payment_status === 'paid' ? 'status-paid' : 'status-unpaid'}`;
+
+      const statusBadge = document.getElementById('m-status-badge');
+      statusBadge.textContent = order.status.toUpperCase();
+      statusBadge.className = `badge badge-${order.status.toLowerCase()}`;
+
+      const currentStatus = (order.status || 'pending').toLowerCase();
+      const statusMsg = STATUS_MESSAGES[currentStatus] || STATUS_MESSAGES['pending'];
+      document.getElementById('m-status-title').textContent = statusMsg.title;
+      document.getElementById('m-status-text').textContent = statusMsg.text;
+
+      document.getElementById('m-customer-name').textContent = order.customer_name;
+      document.getElementById('m-customer-phone').textContent = order.customer_phone;
+      document.getElementById('m-customer-address').textContent = `${order.delivery_location} - ${order.delivery_address}`;
+      
+      if (order.notes) {
+        document.getElementById('m-notes-row').style.display = 'flex';
+        document.getElementById('m-notes').textContent = order.notes;
+      } else {
+        document.getElementById('m-notes-row').style.display = 'none';
+      }
+
+      const items = order.order_items || [];
+      document.getElementById('m-items-list').innerHTML = items.map(item => {
+        const imgSrc = item.imageUrl || item.image_url || 'https://placehold.co/50x65?text=No+Img';
+        return `
+        <div class="item-row">
+          <img src="${imgSrc}" alt="Product">
+          <div class="item-info">
+            <h5>${item.productName}</h5>
+            <p>Colour: ${item.colourName} | Size: ${item.size} | Qty: ${item.quantity}</p>
+          </div>
+          <div class="item-price">${symbol} ${Number(item.unitPrice * item.quantity).toFixed(2)}</div>
+        </div>
+      `}).join('');
+
+      document.getElementById('m-order-total').textContent = `${symbol} ${Number(order.total_amount).toFixed(2)}`;
+      document.getElementById('m-track-btn').href = `track-order.html?ref=${order.order_reference}`;
+      
+      // HIDE BUTTONS IF UNPAID
+      const actionsContainer = document.getElementById('m-actions-container');
+      if (order.payment_status !== 'paid') {
+        actionsContainer.style.display = 'none';
+      } else {
+        actionsContainer.style.display = 'grid';
+      }
+      
+      document.getElementById('order-modal').style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      document.getElementById('order-modal').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    document.getElementById('order-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'order-modal') closeModal();
+    });
+
+    function downloadPDFReceipt() {
+      if (!currentOrderModalData) return;
+      const order = currentOrderModalData;
+      const currencyText = 'GHC'; // FORCED GHC
+      const dateStr = new Date(order.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+      const doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: [105, 250] });
+      
+      let y = 15; 
+      const left = 8;
+      const right = 97;
+      const center = 52.5;
+
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+      doc.text(currentSettings?.store_name || 'CT Collection', center, y, { align: 'center' }); y += 6;
+      
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+      if (currentSettings?.contact_phone) { doc.text(currentSettings.contact_phone, center, y, { align: 'center' }); y += 4; }
+      
+      y += 2; doc.line(10, y, 95, y); y += 6;
+
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+      doc.setTextColor(22, 163, 74);
+      doc.text(`STATUS: ${order.payment_status.toUpperCase()}`, center, y, { align: 'center' });
+      doc.setTextColor(0, 0, 0); y += 6;
+
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      doc.text(`Order: ${order.order_reference}`, left, y); y += 5;
+      doc.text(`Date:  ${dateStr}`, left, y); y += 5;
+      doc.text(`Name:  ${order.customer_name}`, left, y); y += 5;
+      doc.text(`Phone: ${order.customer_phone}`, left, y); y += 5;
+      
+      const addressLines = doc.splitTextToSize(`Address: ${order.delivery_location} - ${order.delivery_address}`, 85);
+      doc.text(addressLines, left, y); y += (addressLines.length * 5);
+      
+      y += 2; doc.line(10, y, 95, y); y += 6;
+
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+      doc.text('Item', left, y); doc.text('Qty', 65, y); doc.text('Total', right, y, { align: 'right' });
+      y += 4; doc.line(10, y, 95, y); y += 6;
+
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      order.order_items.forEach(item => {
+        const nameLines = doc.splitTextToSize(item.productName, 50);
+        doc.text(nameLines, left, y);
+        const itemHeight = nameLines.length * 4;
+        
+        doc.setFontSize(7); doc.text(`${item.colourName} / ${item.size}`, left + 2, y + itemHeight); doc.setFontSize(9);
+        
+        const lineTotal = Number(item.unitPrice * item.quantity).toFixed(2);
+        doc.text(`${item.quantity}`, 65, y);
+        doc.text(`${currencyText} ${lineTotal}`, right, y, { align: 'right' });
+        
+        y += itemHeight + 6;
+      });
+
+      y += 2; doc.line(10, y, 95, y); y += 8;
+
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+      doc.text(`TOTAL: ${currencyText} ${Number(order.total_amount).toFixed(2)}`, right, y, { align: 'right' });
+      y += 10;
+
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+      doc.text('Thank you for shopping with us!', center, y, { align: 'center' }); y += 5;
+      doc.text('Generated by CT Luxx Collection.', center, y, { align: 'center' });
+
+      doc.save(`Receipt-${order.order_reference}.pdf`);
     }
 
     function retryPayment(reference, amount) {
@@ -250,7 +482,6 @@
     }
 
     async function loadProfile() {
-      // Use .single() instead of .maybeSingle()
       const { data: profile, error } = await supabaseClient
         .from('profiles')
         .select('*')
@@ -335,7 +566,6 @@
         btn.disabled = false;
         btn.textContent = 'Save Changes';
       } else {
-        // Manually update the screen text so it updates instantly
         userProfile = { ...userProfile, ...updates };
         
         document.getElementById('view-name').textContent = `${updates.first_name} ${updates.last_name}`;

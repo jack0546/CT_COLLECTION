@@ -79,6 +79,7 @@ async function mountCheckout() {
 
     const orderReference = 'ORD-' + Date.now();
 
+    // ADDED imageUrl SO IT SAVES IN THE DATABASE
     const formattedOrderItems = items.map(item => ({
       product_id: item.productId || item.product_id,
       variant_id: item.variantId || item.variant_id,
@@ -86,7 +87,8 @@ async function mountCheckout() {
       colourName: item.colourName || item.colour,
       size: item.size,
       quantity: item.quantity,
-      unitPrice: item.unitPrice
+      unitPrice: item.unitPrice,
+      imageUrl: item.imageUrl
     }));
 
     if (formattedOrderItems.some(i => !i.product_id)) {
