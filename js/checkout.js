@@ -19,36 +19,24 @@ async function mountCheckout() {
   
   if (user) {
     currentUser = user;
-    const { data: profile, error } = await supabaseClient.from('profiles').select('*').eq('id', user.id).single();
-    
+    const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', user.id).single();
     if (profile) {
       userProfile = profile;
       document.getElementById('guest-form-fields').style.display = 'none';
       document.getElementById('logged-in-info').style.display = 'block';
-      
-      const displayAddress = [
-        profile.region, profile.city, profile.suburb, profile.street_name, profile.landmark
-      ].filter(Boolean).join(' - ');
-
+      const displayAddress = [profile.region, profile.city, profile.suburb, profile.street_name, profile.landmark].filter(Boolean).join(' - ');
       document.getElementById('display-name').textContent = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Not set';
       document.getElementById('display-phone').textContent = profile.phone || 'Not set';
       document.getElementById('display-address').textContent = displayAddress || 'Not set';
-    } else {
-      console.error("Profile error:", error);
-      alert("Could not load your profile. Please check your account page.");
     }
   } else {
-    alert('Please log in or create an account to complete your order.');
     window.location.href = 'login.html?redirect=checkout.html';
     return;
   }
 
   function getCustomerData() {
     if (currentUser && userProfile) {
-      const formattedAddress = [
-        userProfile.region, userProfile.city, userProfile.suburb, userProfile.street_name, userProfile.landmark
-      ].filter(Boolean).join(' - ');
-
+      const formattedAddress = [userProfile.region, userProfile.city, userProfile.suburb, userProfile.street_name, userProfile.landmark].filter(Boolean).join(' - ');
       return {
         name: `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || 'Customer',
         email: userProfile.email,
@@ -75,11 +63,30 @@ async function mountCheckout() {
     if (!customer) return;
 
     paystackBtn.disabled = true;
-    paystackBtn.textContent = 'Processing...';
+    paystackBtn.textContent = 'Reserving stock...';
 
+    // 1. RESERVE STOCK
+    for (const item of items) {
+      const vId = item.variantId || item.variant_id;
+      if (vId) {
+        const { data: success, error } = await supabaseClient.rpc('reserve_stock', {
+          p_variant_id: vId,
+          p_qty: item.quantity
+        });
+
+        if (error || !success) {
+          alert(`Sorry! The item "${item.productName}" is currently reserved by another customer or out of stock. Please try again later.`);
+          paystackBtn.disabled = false;
+          paystackBtn.textContent = '💳 Pay Now (Secure)';
+          return; 
+        }
+      }
+    }
+
+    // 2. SAVE ORDER
+    paystackBtn.textContent = 'Processing...';
     const orderReference = 'ORD-' + Date.now();
 
-    // ADDED imageUrl SO IT SAVES IN THE DATABASE
     const formattedOrderItems = items.map(item => ({
       product_id: item.productId || item.product_id,
       variant_id: item.variantId || item.variant_id,
@@ -91,15 +98,6 @@ async function mountCheckout() {
       imageUrl: item.imageUrl
     }));
 
-    if (formattedOrderItems.some(i => !i.product_id)) {
-      console.error("Cart items missing productId:", items);
-      alert('There is an error with your cart items. Please clear your cart and add the product again.');
-      paystackBtn.disabled = false;
-      paystackBtn.textContent = '💳 Pay Now (Secure)';
-      return;
-    }
-
-    // 1. Save the order as "unpaid" before opening Paystack
     const { error } = await supabaseClient.from('orders').insert({
       order_reference: orderReference,
       customer_name: customer.name,
@@ -123,25 +121,36 @@ async function mountCheckout() {
       return;
     }
 
+    // 3. OPEN PAYSTACK
     const paystack = new PaystackPop();
     paystack.newTransaction({
-      key: 'pk_live_e9eec4f74e00cd39b3c5d2033964c06c52f0a553', // 🔴 
+      key: 'pk_live_e9eec4f74e00cd39b3c5d2033964c06c52f0a553', 
       email: customer.email,
       amount: Math.round(total * 100),
       reference: orderReference,
       
-      // 2. PAYMENT SUCCESSFUL
       onSuccess: (transaction) => {
-        // DO NOT DEDUCT STOCK HERE. The webhook handles it automatically in the background.
-        // We just clear the cart and show the success page.
         clearCart();
         sessionStorage.setItem('last_order_ref', orderReference);
         window.location.href = 'order-confirmed.html?ref=' + orderReference;
       },
 
-      // 3. PAYMENT CANCELLED
-      onCancel: () => {
-        alert('Payment cancelled. Your order is saved as unpaid.');
+      // 4. IF PAYMENT CANCELS, RELEASE STOCK INSTANTLY
+      onCancel: async () => {
+        for (const item of items) {
+          const vId = item.variantId || item.variant_id;
+          if (vId) {
+            await supabaseClient.rpc('release_stock', {
+              p_variant_id: vId,
+              p_qty: item.quantity
+            });
+          }
+        }
+        
+        // Mark the order as cancelled so the cleanup job ignores it
+        await supabaseClient.from('orders').update({ status: 'cancelled' }).eq('order_reference', orderReference);
+
+        alert('Payment cancelled. Your stock has been released. You can try again.');
         paystackBtn.disabled = false;
         paystackBtn.textContent = '💳 Pay Now (Secure)';
       },
