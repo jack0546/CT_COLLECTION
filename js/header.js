@@ -3,205 +3,90 @@
   const el = document.getElementById('site-header');
   if (!el) return;
 
-  // Check login status to change the link text
   const { data: { session } } = await supabaseClient.auth.getSession();
   const authLinkText = session ? 'My Account' : 'Login';
   const authLinkUrl = session ? 'account.html' : 'login.html';
 
-  // Get the current page filename (e.g., "index.html", "shop.html")
   const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentView = urlParams.get('view');
 
-  // Helper function to check if a link is active
+  // Bulletproof active state check
   function isActive(page) {
-    if (page === 'shop.html' && (currentPath === 'shop.html' || currentPath === 'product.html')) {
-      return 'active-link';
+    if (page === 'shop.html') {
+      // Shop is active ONLY if we are on shop.html, product.html, AND not viewing categories
+      if ((currentPath === 'shop.html' || currentPath === 'product.html') && currentView !== 'categories') {
+        return 'active-link';
+      }
     }
-    if (page === 'account.html' && (currentPath === 'account.html' || currentPath === 'login.html' || currentPath === 'register.html')) {
-      return 'active-link';
+    if (page === 'categories') {
+      // Categories is active ONLY if view=categories
+      if (currentPath === 'shop.html' && currentView === 'categories') {
+        return 'active-link';
+      }
     }
-    return currentPath === page ? 'active-link' : '';
+    if (page === 'account.html') {
+      if (currentPath === 'account.html' || currentPath === 'login.html' || currentPath === 'register.html') {
+        return 'active-link';
+      }
+    }
+    if (page === 'index.html') {
+      if (currentPath === 'index.html' || currentPath === '') return 'active-link';
+    }
+    return '';
   }
 
-  // Inject Custom CSS for the Header
   const style = document.createElement('style');
   style.innerHTML = `
-     .site-header {
-      background: #fff;
-      border-bottom: 1px solid #e2e8f0;
-      position: fixed; /* Fixed for mobile stickiness */
-      top: 0;
-      left: 0;
-      width: 100%;
-      z-index: 9999;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-    }
-    .header-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 15px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-    }
+    .site-header { background: #fff; border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; left: 0; width: 100%; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+    .header-inner { max-width: 1200px; margin: 0 auto; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .logo img { max-height: 45px; width: auto; display: block; }
+    .logo span { font-size: 20px; font-weight: 800; letter-spacing: 1px; color: #0f172a; text-transform: uppercase; white-space: nowrap; }
     
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      text-decoration: none;
-    }
-    .logo img {
-      max-height: 45px;
-      width: auto;
-      display: block;
-    }
-    .logo span {
-      font-size: 20px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      color: #0f172a;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
+    .nav-desktop { display: flex; gap: 25px; align-items: center; }
+    .nav-desktop a { text-decoration: none; color: #475569; font-size: 14px; font-weight: 500; transition: color 0.2s ease; position: relative; padding-bottom: 4px; }
+    .nav-desktop a:hover { color: #7c3aed; }
     
-    .nav-desktop {
-      display: flex;
-      gap: 25px;
-      align-items: center;
-    }
-    .nav-desktop a {
-      text-decoration: none;
-      color: #475569;
-      font-size: 14px;
-      font-weight: 500;
-      transition: color 0.2s ease, transform 0.2s ease;
-      position: relative;
-    }
-    .nav-desktop a:hover {
-      color: #7c3aed;
-      transform: translateY(-1px);
-    }
-    
-    .nav-desktop a.active-link {
-      color: #7c3aed;
-      font-weight: 700;
-    }
-    .nav-desktop a.active-link::after {
-      content: '';
-      position: absolute;
-      width: 100%;
-      height: 2px;
-      bottom: -4px;
-      left: 0;
-      background-color: #7c3aed;
-    }
-    
+    /* The underline effect */
     .nav-desktop a::after {
       content: '';
       position: absolute;
       width: 0;
       height: 2px;
-      bottom: -4px;
+      bottom: 0;
       left: 0;
       background-color: #7c3aed;
       transition: width 0.3s ease;
     }
+    
+    /* When hovering, show underline */
     .nav-desktop a:hover::after {
       width: 100%;
     }
     
-    .header-search {
-      display: flex;
-      align-items: center;
-      background: #f8fafc;
-      border-radius: 30px;
-      padding: 5px 15px;
-      border: 1px solid #e2e8f0;
-      transition: all 0.3s ease;
-      width: 300px;
-    }
-    .header-search:focus-within {
-      background: #fff;
-      border-color: #7c3aed;
-      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
-    }
-    .header-search input {
-      border: none;
-      background: transparent;
-      outline: none;
-      width: 100%;
-      padding: 8px 0;
-      font-size: 13px;
-      color: #0f172a;
-    }
-    .header-search button {
-      background: #7c3aed;
-      color: #fff;
-      border: none;
-      border-radius: 20px;
-      padding: 6px 14px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .header-search button:hover {
-      background: #6d28d9;
-    }
-    .cart-link {
-      position: relative;
-      color: #475569;
-      display: flex;
-      align-items: center;
-      transition: color 0.2s;
-    }
-    .cart-link:hover {
-      color: #7c3aed;
-    }
-    .cart-badge {
-      position: absolute;
-      top: -8px;
-      right: -10px;
-      background: #7c3aed;
-      color: #fff;
-      font-size: 10px;
-      font-weight: bold;
-      height: 18px;
-      width: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-    }
-    .menu-toggle {
-      display: none;
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      color: #0f172a;
-    }
-    .nav-mobile {
-      display: none;
-      flex-direction: column;
-      background: #fff;
-      border-top: 1px solid #e2e8f0;
-      padding: 10px 20px;
-      width: 100%;
-    }
-    .nav-mobile a {
-      padding: 12px 0;
-      text-decoration: none;
-      color: #475569;
-      border-bottom: 1px solid #f1f1f1;
-      font-weight: 500;
-    }
-    .nav-mobile a.active-link {
+    /* When active, permanently show underline and color */
+    .nav-desktop a.active-link {
       color: #7c3aed;
       font-weight: 700;
     }
     
+    .nav-desktop a.active-link::after {
+      width: 100%;
+    }
+    
+    .header-search { display: flex; align-items: center; background: #f8fafc; border-radius: 30px; padding: 5px 15px; border: 1px solid #e2e8f0; transition: all 0.3s ease; width: 300px; }
+    .header-search:focus-within { background: #fff; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1); }
+    .header-search input { border: none; background: transparent; outline: none; width: 100%; padding: 8px 0; font-size: 13px; color: #0f172a; }
+    .header-search button { background: #7c3aed; color: #fff; border: none; border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .header-search button:hover { background: #6d28d9; }
+    .cart-link { position: relative; color: #475569; display: flex; align-items: center; transition: color 0.2s; }
+    .cart-link:hover { color: #7c3aed; }
+    .cart-badge { position: absolute; top: -8px; right: -10px; background: #7c3aed; color: #fff; font-size: 10px; font-weight: bold; height: 18px; width: 18px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+    .menu-toggle { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: #0f172a; }
+    .nav-mobile { display: none; flex-direction: column; background: #fff; border-top: 1px solid #e2e8f0; padding: 10px 20px; width: 100%; }
+    .nav-mobile a { padding: 12px 0; text-decoration: none; color: #475569; border-bottom: 1px solid #f1f1f1; font-weight: 500; }
+    .nav-mobile a.active-link { color: #7c3aed; font-weight: 700; }
     @media (max-width: 900px) {
       .nav-desktop, .header-search { display: none; }
       .menu-toggle { display: block; }
@@ -216,21 +101,17 @@
     <header class="site-header">
       <div class="header-inner">
         <a href="index.html" class="logo">
-          ${settings.store_logo 
-            ? `<img src="${settings.store_logo}" alt="${settings.store_name}">` 
-            : ''}
+          ${settings.store_logo ? `<img src="${settings.store_logo}" alt="${settings.store_name}">` : ''}
           <span>${settings.store_name || 'CT Collection'}</span>
         </a>
         
-        <!-- Desktop Nav (Cleaned up) -->
         <nav class="nav-desktop">
           <a href="index.html" class="${isActive('index.html')}">Home</a>
           <a href="shop.html" class="${isActive('shop.html')}">Shop</a>
           <a href="shop.html?view=categories" class="${isActive('categories')}">Categories</a>
-          <a href="${authLinkUrl}" class="${isActive('account.html')}" style="font-weight: 700;">${authLinkText}</a>
+          <a href="${authLinkUrl}" class="${isActive('account.html')}">${authLinkText}</a>
         </nav>
         
-        <!-- Live Search Dropdown -->
         <div class="header-search" style="position:relative;">
           <input id="live-search-input" placeholder="Search products..." autocomplete="off">
           <button type="button" onclick="location.href='shop.html?q='+encodeURIComponent(document.getElementById('live-search-input').value)">Search</button>
@@ -248,12 +129,11 @@
         <button class="menu-toggle" aria-label="Menu">☰</button>
       </div>
       
-      <!-- Mobile Nav (Cleaned up) -->
       <div class="nav-mobile" id="mobile-nav">
         <a href="index.html" class="${isActive('index.html')}">Home</a>
         <a href="shop.html" class="${isActive('shop.html')}">Shop</a>
         <a href="shop.html?view=categories" class="${isActive('categories')}">Categories</a>
-        <a href="${authLinkUrl}" class="${isActive('account.html')}" style="font-weight: 700;">${authLinkText}</a>
+        <a href="${authLinkUrl}" class="${isActive('account.html')}">${authLinkText}</a>
       </div>
     </header>
   `;
@@ -264,7 +144,6 @@
   
   updateCartBadge();
 
-  // --- LIVE SEARCH LOGIC ---
   const searchInput = document.getElementById('live-search-input');
   const resultsBox = document.getElementById('live-search-results');
   let searchTimeout;
@@ -272,11 +151,7 @@
   searchInput.addEventListener('input', (e) => {
     clearTimeout(searchTimeout);
     const query = e.target.value.trim();
-
-    if (query.length < 2) {
-      resultsBox.style.display = 'none';
-      return;
-    }
+    if (query.length < 2) { resultsBox.style.display = 'none'; return; }
 
     searchTimeout = setTimeout(async () => {
       const { data, error } = await supabaseClient

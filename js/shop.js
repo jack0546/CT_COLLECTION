@@ -1,4 +1,3 @@
-// 1. ADD PAGINATION STATE
 const state = {
   products: [],
   categories: [],
@@ -41,7 +40,6 @@ function renderProductCard(product) {
   return `
     <div class="product-card">
       <a href="product.html?slug=${encodeURIComponent(product.slug)}" class="thumb">
-        <!-- FIXED: Added width and height to prevent layout shift -->
         <img src="${img}" alt="${escapeHtml(product.name)}" loading="lazy" width="400" height="500">
         
         ${hasSale ? `
@@ -101,6 +99,7 @@ function renderCategories() {
   const toolbar = document.querySelector('.shop-toolbar');
   const filters = document.getElementById('filters');
   const loadMoreBtn = document.getElementById('load-more-btn');
+  const pageTitle = document.getElementById('shop-page-title');
 
   if (!catGrid) return; 
 
@@ -111,7 +110,8 @@ function renderCategories() {
     if (toolbar) toolbar.style.display = 'none';
     if (loadMoreBtn) loadMoreBtn.style.display = 'none';
 
-    // FIXED: Added width and height to category images
+    if (pageTitle) pageTitle.textContent = "Shop by Category";
+
     catGrid.innerHTML = state.categories.map(c => `
       <a class="category-card" href="shop.html?category=${encodeURIComponent(c.slug)}">
         <div class="thumb" style="aspect-ratio: 1/1; background: #f5f5f5; border-radius: 12px; overflow: hidden;">
@@ -127,6 +127,17 @@ function renderCategories() {
     if (filters) filters.style.display = '';
     if (toolbar) toolbar.style.display = 'flex';
     if (loadMoreBtn) loadMoreBtn.style.display = 'block';
+
+    if (pageTitle) {
+      if (state.category) {
+        const catName = state.categories.find(c => c.slug === state.category)?.name || "Category";
+        pageTitle.textContent = catName;
+      } else if (state.q) {
+        pageTitle.textContent = `Search: ${state.q}`;
+      } else {
+        pageTitle.textContent = "Shop All";
+      }
+    }
   }
 }
 
@@ -146,7 +157,6 @@ async function fetchProducts(reset = false) {
   const from = state.page * state.limit;
   const to = from + state.limit - 1;
 
-  // FIXED: Using 'categories!inner' to allow filtering by joined table slug properly
   const selectStr = state.category 
     ? 'id, name, slug, base_price, sale_price, created_at, categories!inner(name, slug), variants(colour_name, colour_code, size, stock_quantity), variant_images(image_url, colour_name)'
     : 'id, name, slug, base_price, sale_price, created_at, categories(name, slug), variants(colour_name, colour_code, size, stock_quantity), variant_images(image_url, colour_name)';
@@ -215,31 +225,28 @@ function debounceSearch(val) {
 }
 
 async function mountShop() {
-  // FIXED: Automatically show category grid if landing on shop.html with no specific filter
-  if (!state.category && !state.q && !state.view) {
-    state.view = 'categories';
-  }
-
   state.categories = await loadCategories();
   populateFilters();
   
+  // Fetch products immediately
   await fetchProducts(true);
   renderCategories();
 
-  document.getElementById('f-search').addEventListener('input', e => debounceSearch(e.target.value));
-  
+  // Filter events
   document.getElementById('f-category').addEventListener('change', e => { 
-    state.category = e.target.value; 
-    if (state.category) state.view = ''; // Switch to product view when filtering
-    fetchProducts(true); 
-    renderCategories();
+    const selectedCat = e.target.value;
+    if (selectedCat) {
+      window.location.href = `shop.html?category=${encodeURIComponent(selectedCat)}`;
+    } else {
+      window.location.href = `shop.html`;
+    }
   });
   
+  document.getElementById('f-search').addEventListener('input', e => debounceSearch(e.target.value));
   document.getElementById('f-price').addEventListener('input', e => {
     state.priceMax = Number(e.target.value);
     document.getElementById('price-label').textContent = `GHC ${state.priceMax}`;
   });
-  
   document.getElementById('f-colour').addEventListener('change', e => { state.colour = e.target.value; fetchProducts(true); });
   document.getElementById('f-size').addEventListener('change', e => { state.size = e.target.value; fetchProducts(true); });
   document.getElementById('f-sort').addEventListener('change', e => { state.sort = e.target.value; fetchProducts(true); });
