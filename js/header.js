@@ -11,16 +11,13 @@
   const urlParams = new URLSearchParams(window.location.search);
   const currentView = urlParams.get('view');
 
-  // Bulletproof active state check
   function isActive(page) {
     if (page === 'shop.html') {
-      // Shop is active ONLY if we are on shop.html, product.html, AND not viewing categories
       if ((currentPath === 'shop.html' || currentPath === 'product.html') && currentView !== 'categories') {
         return 'active-link';
       }
     }
     if (page === 'categories') {
-      // Categories is active ONLY if view=categories
       if (currentPath === 'shop.html' && currentView === 'categories') {
         return 'active-link';
       }
@@ -39,70 +36,82 @@
   const style = document.createElement('style');
   style.innerHTML = `
     .site-header { background: #fff; border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; left: 0; width: 100%; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-    .header-inner { max-width: 1200px; margin: 0 auto; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-    .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-    .logo img { max-height: 45px; width: auto; display: block; }
-    .logo span { font-size: 20px; font-weight: 800; letter-spacing: 1px; color: #0f172a; text-transform: uppercase; white-space: nowrap; }
+    .header-inner { max-width: 1200px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     
-    .nav-desktop { display: flex; gap: 25px; align-items: center; }
+    /* Logo container */
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; min-width: 0; flex-shrink: 1; }
+    .logo img { max-height: 40px; width: auto; display: block; flex-shrink: 0; }
+    
+    /* Logo Text Stack */
+    .logo-text-container { 
+      display: flex; 
+      flex-direction: row; 
+      gap: 6px;
+      font-size: 18px; 
+      font-weight: 800; 
+      letter-spacing: 0.5px; 
+      color: #0f172a; 
+      text-transform: uppercase; 
+      white-space: nowrap; 
+      line-height: 1.1;
+    }
+    
+    .nav-desktop { display: flex; gap: 25px; align-items: center; flex-shrink: 0; }
     .nav-desktop a { text-decoration: none; color: #475569; font-size: 14px; font-weight: 500; transition: color 0.2s ease; position: relative; padding-bottom: 4px; }
     .nav-desktop a:hover { color: #7c3aed; }
+    .nav-desktop a::after { content: ''; position: absolute; width: 0; height: 2px; bottom: 0; left: 0; background-color: #7c3aed; transition: width 0.3s ease; }
+    .nav-desktop a:hover::after { width: 100%; }
+    .nav-desktop a.active-link { color: #7c3aed; font-weight: 700; }
+    .nav-desktop a.active-link::after { width: 100%; }
     
-    /* The underline effect */
-    .nav-desktop a::after {
-      content: '';
-      position: absolute;
-      width: 0;
-      height: 2px;
-      bottom: 0;
-      left: 0;
-      background-color: #7c3aed;
-      transition: width 0.3s ease;
-    }
-    
-    /* When hovering, show underline */
-    .nav-desktop a:hover::after {
-      width: 100%;
-    }
-    
-    /* When active, permanently show underline and color */
-    .nav-desktop a.active-link {
-      color: #7c3aed;
-      font-weight: 700;
-    }
-    
-    .nav-desktop a.active-link::after {
-      width: 100%;
-    }
-    
-    .header-search { display: flex; align-items: center; background: #f8fafc; border-radius: 30px; padding: 5px 15px; border: 1px solid #e2e8f0; transition: all 0.3s ease; width: 300px; }
+    .header-search { display: flex; align-items: center; background: #f8fafc; border-radius: 30px; padding: 4px 12px; border: 1px solid #e2e8f0; transition: all 0.3s ease; width: 220px; flex-shrink: 1; }
     .header-search:focus-within { background: #fff; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1); }
     .header-search input { border: none; background: transparent; outline: none; width: 100%; padding: 8px 0; font-size: 13px; color: #0f172a; }
-    .header-search button { background: #7c3aed; color: #fff; border: none; border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-    .header-search button:hover { background: #6d28d9; }
-    .cart-link { position: relative; color: #475569; display: flex; align-items: center; transition: color 0.2s; }
+    .header-search button { background: #7c3aed; color: #fff; border: none; border-radius: 20px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+    
+    /* Ensure cart and menu are separated */
+    .cart-link { position: relative; color: #475569; display: flex; align-items: center; transition: color 0.2s; flex-shrink: 0; margin-left: auto; }
     .cart-link:hover { color: #7c3aed; }
-    .cart-badge { position: absolute; top: -8px; right: -10px; background: #7c3aed; color: #fff; font-size: 10px; font-weight: bold; height: 18px; width: 18px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-    .menu-toggle { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: #0f172a; }
+    .cart-badge { position: absolute; top: -6px; right: -8px; background: #7c3aed; color: #fff; font-size: 10px; font-weight: bold; height: 18px; width: 18px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+    
+    .menu-toggle { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: #0f172a; flex-shrink: 0; padding: 0 4px; }
+    
     .nav-mobile { display: none; flex-direction: column; background: #fff; border-top: 1px solid #e2e8f0; padding: 10px 20px; width: 100%; }
     .nav-mobile a { padding: 12px 0; text-decoration: none; color: #475569; border-bottom: 1px solid #f1f1f1; font-weight: 500; }
     .nav-mobile a.active-link { color: #7c3aed; font-weight: 700; }
-    @media (max-width: 900px) {
+    
+    /* Mobile Breakpoint */
+    @media (max-width: 1000px) {
       .nav-desktop, .header-search { display: none; }
       .menu-toggle { display: block; }
       .nav-mobile.open { display: flex; }
-      .logo span { font-size: 16px; }
+      
+      /* Stack logo text on mobile */
+      .logo-text-container { 
+        flex-direction: column; 
+        gap: 0; 
+        font-size: 15px; 
+      }
       .logo img { max-height: 32px; }
     }
   `;
   document.head.appendChild(style);
+
+  // SPLIT THE STORE NAME
+  const storeName = settings.store_name || 'CT_LUXX COLLECTION';
+  const nameParts = storeName.split(' ');
+  const part1 = nameParts[0];
+  const part2 = nameParts.slice(1).join(' ');
 
   el.innerHTML = `
     <header class="site-header">
       <div class="header-inner">
         <a href="index.html" class="logo">
           ${settings.store_logo ? `<img src="${settings.store_logo}" alt="${settings.store_name}">` : ''}
-          <span>${settings.store_name || 'CT Collection'}</span>
+          <div class="logo-text-container">
+            <span>${part1}</span>
+            ${part2 ? `<span>${part2}</span>` : ''}
+          </div>
         </a>
         
         <nav class="nav-desktop">
