@@ -37,9 +37,10 @@ function renderProductCard(product) {
   const rating = 4.5; 
   const reviewCount = Math.floor(Math.random() * 200) + 50; 
 
+  // CHANGED: Use #slug= instead of ?slug=
   return `
     <div class="product-card">
-      <a href="product.html?slug=${encodeURIComponent(product.slug)}" class="thumb">
+      <a href="product.html#slug=${encodeURIComponent(product.slug)}" class="thumb">
         <img src="${img}" alt="${escapeHtml(product.name)}" loading="lazy" width="400" height="500">
         
         ${hasSale ? `
@@ -52,7 +53,7 @@ function renderProductCard(product) {
         ${!inStock ? '<span class="badge-oos">Out of Stock</span>' : ''}
       </a>
       
-      <a href="product.html?slug=${encodeURIComponent(product.slug)}" style="text-decoration: none;">
+      <a href="product.html#slug=${encodeURIComponent(product.slug)}" style="text-decoration: none;">
         <h3 class="product-title">${escapeHtml(product.name)}</h3>
       </a>
       
@@ -62,7 +63,7 @@ function renderProductCard(product) {
           ${hasSale ? `<del>${formatMoney(product.base_price, 'GHC')}</del>` : ''}
           <span class="sold-count">🔥 ${soldDisplay} sold</span>
         </div>
-        <button class="card-cart-btn" onclick="location.href='product.html?slug=${encodeURIComponent(product.slug)}'">
+        <button class="card-cart-btn" onclick="location.href='product.html#slug=${encodeURIComponent(product.slug)}'">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
         </button>
       </div>
@@ -112,8 +113,9 @@ function renderCategories() {
 
     if (pageTitle) pageTitle.textContent = "Shop by Category";
 
+    // CHANGED: Use #view= for categories
     catGrid.innerHTML = state.categories.map(c => `
-      <a class="category-card" href="shop.html?category=${encodeURIComponent(c.slug)}">
+      <a class="category-card" href="shop.html#view=categories&category=${encodeURIComponent(c.slug)}">
         <div class="thumb" style="aspect-ratio: 1/1; background: #f5f5f5; border-radius: 12px; overflow: hidden;">
           ${c.image_url ? `<img src="${c.image_url}" alt="${escapeHtml(c.name)}" style="width:100%; height:100%; object-fit:cover;" loading="lazy" width="300" height="300">` : ''}
         </div>
@@ -228,15 +230,13 @@ async function mountShop() {
   state.categories = await loadCategories();
   populateFilters();
   
-  // Fetch products immediately
   await fetchProducts(true);
   renderCategories();
 
-  // Filter events
   document.getElementById('f-category').addEventListener('change', e => { 
     const selectedCat = e.target.value;
     if (selectedCat) {
-      window.location.href = `shop.html?category=${encodeURIComponent(selectedCat)}`;
+      window.location.href = `shop.html#category=${encodeURIComponent(selectedCat)}`;
     } else {
       window.location.href = `shop.html`;
     }
