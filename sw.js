@@ -1,4 +1,4 @@
-const CACHE_NAME = 'CT COLLECTION'; // Change v2 to v3
+const CACHE_NAME = 'CT LUXX COLLECTION'; // Change v2 to v3
 const urlsToCache = [
   '/',
   '/index.html',

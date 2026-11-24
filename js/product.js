@@ -262,6 +262,7 @@ async function mountProduct() {
   currentColour = colours[0]?.name || null;
   document.title = `${currentProduct.name} — ${currentSettings.store_name}`;
 
+  // --- REORDERED: Colour and Size come before Description ---
   document.getElementById('product-root').innerHTML = `
     <div style="padding:24px 0 4px; font-size:13px; color:#737373;">
       <a href="index.html">Home</a> / <a href="shop.html">Shop</a> / <span style="color:#0a0a0a;">${escapeHtml(currentProduct.name)}</span>
@@ -274,9 +275,14 @@ async function mountProduct() {
       <div>
         <h1 class="pd-title">${escapeHtml(currentProduct.name)}</h1>
         <div class="pd-price" id="pd-price"></div>
-        <p class="pd-desc">${escapeHtml(currentProduct.description || '')}</p>
-        <div class="pd-block"><h4>Colour: <span id="pd-colour-label"></span></h4><div class="colour-swatches" id="pd-colours"></div></div>
         
+        <!-- 1. Colour -->
+        <div class="pd-block">
+          <h4>Colour: <span id="pd-colour-label"></span></h4>
+          <div class="colour-swatches" id="pd-colours"></div>
+        </div>
+        
+        <!-- 2. Size -->
         <div class="pd-block">
           <h4>Size</h4>
           <div class="size-grid" id="pd-sizes"></div>
@@ -290,15 +296,25 @@ async function mountProduct() {
           </div>
         </div>
 
-        <div class="pd-block"><h4>Quantity</h4>
+        <!-- 3. Quantity -->
+        <div class="pd-block">
+          <h4>Quantity</h4>
           <div class="qty-box">
             <button type="button" id="qty-minus">−</button>
             <input type="number" id="pd-qty" min="1" value="1">
             <button type="button" id="qty-plus">+</button>
           </div>
         </div>
+
+        <!-- 4. Description (Moved below options) -->
+        <div style="margin: 24px 0 16px; border-top: 1px solid #e5e5e5; padding-top: 16px;">
+          <h4 style="margin: 0 0 8px; font-size: 14px; font-weight: 600; color: #0f172a;">Description</h4>
+          <p class="pd-desc" style="margin: 0; color: #475569; line-height: 1.6; font-size: 14px;">
+            ${escapeHtml(currentProduct.description || 'No description available.')}
+          </p>
+        </div>
         
-        <div class="pd-actions" style="flex-direction: column; gap: 12px;">
+        <div class="pd-actions" style="flex-direction: column; gap: 12px; margin-top: 24px;">
           <div style="display:flex; gap:10px;">
             <button class="btn btn-outline" id="btn-add" style="flex:1;">Add to Cart</button>
             <button class="btn btn-dark" id="btn-buy" style="flex:1;">Buy Now</button>
